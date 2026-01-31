@@ -10,6 +10,7 @@ const undoBtn = document.getElementById('undo-btn');
 
 let activeTab = 'split';
 let placeQueue = [];
+const newDishHints = ['ND-101', 'ND-102', 'ND-103', 'ND-104', 'ND-105'];
 
 function toast(msg, type = 'info') {
   let el = document.querySelector('.toast');
@@ -119,13 +120,13 @@ function renderSplitTab() {
     </section>
 
     <section class="panel card" id="merge-target-panel">
-      <label>合并目标培养皿（仅 1 个，需先扫描）</label>
+      <label>合并目标新培养皿（必须未占用）</label>
       <div class="form-grid">
         <input id="merge-target" placeholder="扫描/输入目标皿ID" />
         <button id="merge-target-fill" type="button">生成新皿ID</button>
       </div>
-      ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'merge-target')}
-  </section>
+      ${helperRow(newDishHints, 'merge-target')}
+    </section>
 
   <section class="panel card" id="merge-parent-panel">
     <label>父培养皿（多个，逐一扫码加入队列）</label>
@@ -301,7 +302,8 @@ function renderSplitTab() {
         if (parents.length === 0) throw new Error('请扫描/加入父培养皿');
         const targetDishId = mergeTargetInput.value.trim();
         if (!targetDishId) throw new Error('请扫描/填写目标培养皿');
-        if (store.state.dishes.has(targetDishId)) throw new Error(`培养皿已被占用: ${targetDishId}`);
+        if (store.state.dishes.has(targetDishId))
+          throw new Error(`目标培养皿已被占用，请使用新编号: ${targetDishId}`);
         store.merge({ parentDishIds: parents, targetDishId });
         toast('合并成功，生成 1 份');
       }
