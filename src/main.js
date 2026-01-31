@@ -10,6 +10,11 @@ const undoBtn = document.getElementById('undo-btn');
 
 let activeTab = 'split';
 const trayHints = trays.map((t) => t.id);
+const newDishHints = ['ND-101', 'ND-102', 'ND-103', 'ND-104', 'ND-105'];
+
+function generateNewDishId() {
+  return `ND-${Math.floor(Math.random() * 900 + 100)}`;
+}
 
 function toast(msg, type = 'info') {
   let el = document.querySelector('.toast');
@@ -135,6 +140,14 @@ function renderSplitTab() {
       </div>
       ${helperRow(trayHints, 'merge-tray')}
     </section>
+    <section class="panel card" id="merge-target-panel">
+      <label>新培养皿编号（可选，不填则自动生成）</label>
+      <div class="form-grid">
+        <input id="merge-target" placeholder="如 ND-101" />
+        <button id="merge-target-fill" type="button">生成新皿</button>
+      </div>
+      ${helperRow(newDishHints, 'merge-target')}
+    </section>
 
   <section class="panel card" id="merge-parent-panel">
     <label>父培养皿（多个，逐一扫码加入队列）</label>
@@ -160,9 +173,12 @@ function renderSplitTab() {
   const splitCountInput = content.querySelector('#split-count');
   const splitPanel = content.querySelector('#split-tray-panel');
   const splitCountPanel = content.querySelector('#split-count-panel');
-  const mergeTargetPanel = content.querySelector('#merge-tray-panel');
+  const mergeTrayPanel = content.querySelector('#merge-tray-panel');
   const mergeTrayInput = content.querySelector('#merge-tray');
   const mergeTrayFill = content.querySelector('#merge-tray-fill');
+  const mergeTargetPanel = content.querySelector('#merge-target-panel');
+  const mergeTargetInput = content.querySelector('#merge-target');
+  const mergeTargetFill = content.querySelector('#merge-target-fill');
   const mergeParentPanel = content.querySelector('#merge-parent-panel');
   const mergeParentInput = content.querySelector('#merge-parent-input');
   const mergeParentAdd = content.querySelector('#merge-parent-add');
@@ -175,6 +191,7 @@ function renderSplitTab() {
     parentQueue = [];
     mergeParentBulk.value = '';
     mergeParentInput.value = '';
+    mergeTargetInput.value = '';
     renderParentQueue();
   }
 
@@ -182,6 +199,7 @@ function renderSplitTab() {
     const isSplit = modeSel.value === 'split';
     splitPanel.style.display = isSplit ? 'block' : 'none';
     splitCountPanel.style.display = isSplit ? 'block' : 'none';
+    mergeTrayPanel.style.display = isSplit ? 'none' : 'block';
     mergeTargetPanel.style.display = isSplit ? 'none' : 'block';
     mergeParentPanel.style.display = isSplit ? 'none' : 'block';
     // 拆分模式才显示父皿输入块（含 helper）
@@ -193,6 +211,9 @@ function renderSplitTab() {
 
   mergeTrayFill.addEventListener('click', () => {
     mergeTrayInput.value = `T-${Math.floor(Math.random() * 90 + 10)}`;
+  });
+  mergeTargetFill.addEventListener('click', () => {
+    mergeTargetInput.value = generateNewDishId();
   });
 
   function renderParentQueue() {
@@ -258,11 +279,15 @@ function renderSplitTab() {
         if (parents.length === 0) throw new Error('请扫描/加入父培养皿');
         const trayId = mergeTrayInput.value.trim();
         if (!trayId) throw new Error('请填写盘子编号');
-        store.merge({ parentDishIds: parents, trayId });
+        const targetDishId = mergeTargetInput.value.trim();
+        if (targetDishId && store.state.dishes.has(targetDishId))
+          throw new Error(`培养皿已被占用: ${targetDishId}`);
+        store.merge({ parentDishIds: parents, trayId, targetDishId });
         toast('合并成功，生成 1 份');
       }
       parentInput.value = '';
       mergeParentInput.value = '';
+      mergeTargetInput.value = '';
       resetQueues();
       renderEventLog();
     } catch (err) {
