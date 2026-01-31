@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>花苗流程 POC</title>
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <div class="title">花苗流程 POC</div>
+        <div class="subtitle">Mock 数据 · Mock 扫码 · 单页面</div>
+      </div>
+      <button id="undo-btn" class="ghost">撤销</button>
+    </header>
+
+    <main id="content"></main>
+
+    <section id="event-log" class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">事件日志</div>
+          <div class="card-sub">最新在前 · 演示用</div>
+        </div>
+        <select id="filter-type">
+          <option value="all">全部</option>
+          <option value="create">创建</option>
+          <option value="split">拆分</option>
+          <option value="merge">合并</option>
+          <option value="place">上架</option>
+          <option value="status">状态</option>
+          <option value="transfer">转移</option>
+        </select>
+      </div>
+      <ul id="event-list" class="event-list"></ul>
+    </section>
+
+    <nav class="tab-bar">
+      <button class="tab active" data-tab="split">拆分/合并</button>
+      <button class="tab" data-tab="place">上架</button>
+      <button class="tab" data-tab="status">状态</button>
+      <button class="tab" data-tab="transfer">转移</button>
+    </nav>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
