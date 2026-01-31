@@ -109,8 +109,11 @@ function renderSplitTab() {
         <option value="merge">合并</option>
       </select>
     </section>
-    ${inputField('parent-dish', '父培养皿 ID（仅拆分模式，单个）', '如 D-1 或扫码填入')}
-    ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'parent-dish')}
+    <section class="panel card" id="split-parent-panel">
+      <label for="parent-dish">父培养皿 ID（仅拆分模式，单个）</label>
+      <input id="parent-dish" placeholder="如 D-1 或扫码填入" />
+      ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'parent-dish')}
+    </section>
 
     <section class="panel card" id="split-child-panel">
       <label>目标培养皿（逐一扫码加入队列）</label>
@@ -147,6 +150,7 @@ function renderSplitTab() {
   `;
   wireHelpers(content);
   const modeSel = content.querySelector('#split-mode');
+  const splitParentPanel = content.querySelector('#split-parent-panel');
   const parentInput = content.querySelector('#parent-dish');
   const submit = content.querySelector('#split-submit');
   const childInput = content.querySelector('#child-dish-input');
@@ -167,8 +171,6 @@ function renderSplitTab() {
 
   let childQueue = [];
   let parentQueue = [];
-  const parentCard = parentInput.closest('.panel.card') || parentInput.parentElement;
-
   function resetQueues() {
     childQueue = [];
     parentQueue = [];
@@ -228,8 +230,8 @@ function renderSplitTab() {
     splitPanel.style.display = isSplit ? 'block' : 'none';
     mergeTargetPanel.style.display = isSplit ? 'none' : 'block';
     mergeParentPanel.style.display = isSplit ? 'none' : 'block';
-    // 拆分模式才显示单个父皿输入卡片
-    if (parentCard) parentCard.style.display = isSplit ? 'block' : 'none';
+    // 拆分模式才显示父皿输入块（含 helper）
+    if (splitParentPanel) splitParentPanel.style.display = isSplit ? 'block' : 'none';
     resetQueues();
   }
   modeSel.addEventListener('change', updateModeUI);
