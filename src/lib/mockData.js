@@ -9,6 +9,13 @@ export const locations = [
   { id: 'rack-B1', label: 'B架-1层-1位' },
 ];
 
+export const trays = [
+  { id: 'T-01', label: '盘-01' },
+  { id: 'T-02', label: '盘-02' },
+  { id: 'T-03', label: '盘-03' },
+  { id: 'T-04', label: '盘-04' },
+];
+
 export const plants = Array.from({ length: 10 }).map((_, idx) => ({
   id: `P-${idx + 1}`,
   type: idx % 2 === 0 ? '品种A' : '品种B',
@@ -24,6 +31,7 @@ export function makeInitialState() {
     plants: new Map(plants.map((p) => [p.id, { ...p }])),
     dishes: new Map(dishes.map((d) => [d.id, { ...d }])),
     locations: new Map(locations.map((l) => [l.id, { ...l }])),
+    trays: new Map(trays.map((t) => [t.id, { ...t }])),
     events: [],
     staff,
   };

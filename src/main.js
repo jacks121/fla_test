@@ -1,5 +1,5 @@
 import { createStore } from './lib/domain.js';
-import { makeInitialState, plants, dishes, locations } from './lib/mockData.js';
+import { makeInitialState, plants, dishes, locations, trays } from './lib/mockData.js';
 
 const store = createStore(makeInitialState());
 const content = document.getElementById('content');
@@ -9,12 +9,7 @@ const filterType = document.getElementById('filter-type');
 const undoBtn = document.getElementById('undo-btn');
 
 let activeTab = 'split';
-let placeQueue = [];
-const newDishHints = ['ND-101', 'ND-102', 'ND-103', 'ND-104', 'ND-105'];
-
-function generateNewDishId() {
-  return `ND-${Math.floor(Math.random() * 900 + 100)}`;
-}
+const trayHints = trays.map((t) => t.id);
 
 function toast(msg, type = 'info') {
   let el = document.querySelector('.toast');
@@ -34,11 +29,16 @@ function renderEventLog() {
   const events = store.state.events.filter((e) => type === 'all' || e.type === type);
   eventList.innerHTML = events
     .map(
-      (e) => `<li class="event-item">
-        <div class="event-title">${labelOfType(e.type)} · ${new Date(e.ts).toLocaleTimeString()}</div>
-        <div class="event-meta">in: ${e.inputIds.join(', ')} | out: ${e.outputIds.join(', ')}</div>
-        ${e.meta ? `<div class="event-meta">${metaText(e)}</div>` : ''}
-      </li>`
+      (e) => {
+        const inText = e.inputIds.length ? e.inputIds.join(', ') : '-';
+        const outText = e.outputIds.length ? e.outputIds.join(', ') : '-';
+        const meta = metaText(e);
+        return `<li class="event-item">
+          <div class="event-title">${labelOfType(e.type)} · ${new Date(e.ts).toLocaleTimeString()}</div>
+          <div class="event-meta">in: ${inText} | out: ${outText}</div>
+          ${meta ? `<div class="event-meta">${meta}</div>` : ''}
+        </li>`;
+      }
     )
     .join('');
 }
@@ -55,10 +55,12 @@ function labelOfType(t) {
 }
 
 function metaText(e) {
-  if (e.type === 'place') return `位置: ${e.meta.locationId}`;
-  if (e.type === 'status') return `状态: ${e.meta.status}`;
-  if (e.type === 'transfer') return `从 ${e.meta.fromDishId} 到 ${e.meta.toDishId}`;
-  return '';
+  const parts = [];
+  if (e.meta?.trayId) parts.push(`盘子: ${e.meta.trayId}`);
+  if (e.type === 'place' && e.meta?.locationId) parts.push(`位置: ${e.meta.locationId}`);
+  if (e.type === 'status') parts.push(`状态: ${e.meta.status}`);
+  if (e.type === 'transfer') parts.push(`从 ${e.meta.fromDishId} 到 ${e.meta.toDishId}`);
+  return parts.join(' · ');
 }
 
 function inputField(id, label, placeholder = '') {
@@ -100,7 +102,7 @@ function renderSplitTab() {
   content.innerHTML = `
     <section class="card">
       <div class="card-title">拆分/合并</div>
-      <div class="small">拆分：父→子队列；合并：先选目标皿，再扫多个父。</div>
+      <div class="small">拆分：父皿 + 盘号 + 数量；合并：盘号 + 多父皿。</div>
     </section>
     <section class="card">
       <label>模式</label>
@@ -115,24 +117,23 @@ function renderSplitTab() {
       ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'parent-dish')}
     </section>
 
-    <section class="panel card" id="split-child-panel">
-      <label>目标培养皿（逐一扫码加入队列）</label>
-      <div class="form-grid">
-        <input id="child-dish-input" placeholder="扫描/输入皿ID，回车加入" />
-        <button id="child-add" type="button">加入队列</button>
-      </div>
-      <input id="child-dishes" placeholder="或直接粘贴逗号分隔列表" />
-      <button id="child-clear" type="button" class="ghost" style="margin-top:6px;width:100%;">清空队列</button>
-      <div id="child-queue" class="chip-row"></div>
+    <section class="panel card" id="split-tray-panel">
+      <label>盘子编号（拆分结果所在盘）</label>
+      <input id="split-tray" placeholder="如 T-01" />
+      ${helperRow(trayHints, 'split-tray')}
+    </section>
+    <section class="panel card" id="split-count-panel">
+      <label>拆分数量</label>
+      <input id="split-count" type="number" min="1" value="3" />
     </section>
 
-    <section class="panel card" id="merge-target-panel">
-      <label>合并目标新培养皿（必须未占用）</label>
+    <section class="panel card" id="merge-tray-panel">
+      <label>合并后盘子编号</label>
       <div class="form-grid">
-        <input id="merge-target" placeholder="扫描/输入目标皿ID" />
-        <button id="merge-target-fill" type="button">生成新皿ID</button>
+        <input id="merge-tray" placeholder="如 T-02" />
+        <button id="merge-tray-fill" type="button">生成盘号</button>
       </div>
-      ${helperRow(newDishHints, 'merge-target')}
+      ${helperRow(trayHints, 'merge-tray')}
     </section>
 
   <section class="panel card" id="merge-parent-panel">
@@ -146,22 +147,22 @@ function renderSplitTab() {
     <button id="merge-parent-clear" type="button" class="ghost" style="margin-top:6px;width:100%;">清空队列</button>
     <div id="merge-parent-queue" class="chip-row"></div>
   </section>
-    <button id="split-submit">提交</button>
+    <div class="action-row">
+      <button id="split-submit" class="primary-action">提交</button>
+    </div>
   `;
   wireHelpers(content);
   const modeSel = content.querySelector('#split-mode');
   const splitParentPanel = content.querySelector('#split-parent-panel');
   const parentInput = content.querySelector('#parent-dish');
   const submit = content.querySelector('#split-submit');
-  const childInput = content.querySelector('#child-dish-input');
-  const childBulk = content.querySelector('#child-dishes');
-  const childAdd = content.querySelector('#child-add');
-  const childClear = content.querySelector('#child-clear');
-  const childQueueEl = content.querySelector('#child-queue');
-  const splitPanel = content.querySelector('#split-child-panel');
-  const mergeTargetPanel = content.querySelector('#merge-target-panel');
-  const mergeTargetInput = content.querySelector('#merge-target');
-  const mergeTargetFill = content.querySelector('#merge-target-fill');
+  const splitTrayInput = content.querySelector('#split-tray');
+  const splitCountInput = content.querySelector('#split-count');
+  const splitPanel = content.querySelector('#split-tray-panel');
+  const splitCountPanel = content.querySelector('#split-count-panel');
+  const mergeTargetPanel = content.querySelector('#merge-tray-panel');
+  const mergeTrayInput = content.querySelector('#merge-tray');
+  const mergeTrayFill = content.querySelector('#merge-tray-fill');
   const mergeParentPanel = content.querySelector('#merge-parent-panel');
   const mergeParentInput = content.querySelector('#merge-parent-input');
   const mergeParentAdd = content.querySelector('#merge-parent-add');
@@ -169,65 +170,21 @@ function renderSplitTab() {
   const mergeParentClear = content.querySelector('#merge-parent-clear');
   const mergeParentQueueEl = content.querySelector('#merge-parent-queue');
 
-  let childQueue = [];
   let parentQueue = [];
   function resetQueues() {
-    childQueue = [];
     parentQueue = [];
-    childBulk.value = '';
     mergeParentBulk.value = '';
     mergeParentInput.value = '';
-    mergeTargetInput.value = '';
-    renderChildQueue();
+    mergeTrayInput.value = '';
+    splitTrayInput.value = '';
+    splitCountInput.value = '3';
     renderParentQueue();
   }
-
-  function renderChildQueue() {
-    childQueueEl.innerHTML = childQueue
-      .map(
-        (id) => `<span class="chip">${id}<button data-id="${id}" aria-label="remove">×</button></span>`
-      )
-      .join('');
-    childQueueEl.querySelectorAll('button').forEach((btn) =>
-      btn.addEventListener('click', () => {
-        childQueue = childQueue.filter((x) => x !== btn.dataset.id);
-        const bulkList = childBulk.value
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .filter((x) => x !== btn.dataset.id);
-        childBulk.value = bulkList.join(', ');
-        renderChildQueue();
-      })
-    );
-  }
-  function addChild(id) {
-    if (!id) return;
-    if (childQueue.includes(id)) return toast('已在队列', 'error');
-    childBulk.value = '';
-    childQueue.push(id);
-    renderChildQueue();
-  }
-  childAdd.addEventListener('click', () => {
-    addChild(childInput.value.trim());
-    childInput.value = '';
-    childInput.focus();
-  });
-  childInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      childAdd.click();
-    }
-  });
-  childClear.addEventListener('click', () => {
-    childQueue = [];
-    childBulk.value = '';
-    renderChildQueue();
-  });
 
   function updateModeUI() {
     const isSplit = modeSel.value === 'split';
     splitPanel.style.display = isSplit ? 'block' : 'none';
+    splitCountPanel.style.display = isSplit ? 'block' : 'none';
     mergeTargetPanel.style.display = isSplit ? 'none' : 'block';
     mergeParentPanel.style.display = isSplit ? 'none' : 'block';
     // 拆分模式才显示父皿输入块（含 helper）
@@ -237,8 +194,8 @@ function renderSplitTab() {
   modeSel.addEventListener('change', updateModeUI);
   updateModeUI();
 
-  mergeTargetFill.addEventListener('click', () => {
-    mergeTargetInput.value = generateNewDishId();
+  mergeTrayFill.addEventListener('click', () => {
+    mergeTrayInput.value = `T-${Math.floor(Math.random() * 90 + 10)}`;
   });
 
   function renderParentQueue() {
@@ -256,10 +213,6 @@ function renderSplitTab() {
           .filter(Boolean)
           .filter((x) => x !== btn.dataset.id);
         mergeParentBulk.value = bulkList.join(', ');
-        if (mergeTargetInput.value.trim() === btn.dataset.id) {
-          mergeTargetInput.value = generateNewDishId();
-          toast('目标皿不可用，已自动换成新编号');
-        }
         renderParentQueue();
       })
     );
@@ -289,20 +242,16 @@ function renderSplitTab() {
   });
 
   submit.addEventListener('click', () => {
-    const bulk = childBulk.value
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const targets = Array.from(new Set([...childQueue, ...bulk]));
     try {
       if (modeSel.value === 'split') {
         const parent = parentInput.value.trim();
         if (!parent) throw new Error('请填写父培养皿');
-        if (targets.length === 0) throw new Error('请先扫描/加入目标培养皿');
-        const occupied = targets.filter((id) => store.state.dishes.has(id));
-        if (occupied.length) throw new Error(`以下培养皿已被占用: ${occupied.join(', ')}`);
-        store.split({ parentDishId: parent, childDishIds: targets });
-        toast(`拆分成功，生成 ${targets.length} 份`);
+        const trayId = splitTrayInput.value.trim();
+        if (!trayId) throw new Error('请填写盘子编号');
+        const count = Number(splitCountInput.value || '0');
+        if (!count || count < 1) throw new Error('数量需大于 0');
+        store.split({ parentDishId: parent, count, trayId });
+        toast(`拆分成功，生成 ${count} 份`);
       } else {
         const parentBulkList = mergeParentBulk.value
           .split(',')
@@ -310,13 +259,9 @@ function renderSplitTab() {
           .filter(Boolean);
         const parents = Array.from(new Set([...parentQueue, ...parentBulkList]));
         if (parents.length === 0) throw new Error('请扫描/加入父培养皿');
-        const targetDishId = mergeTargetInput.value.trim();
-        if (!targetDishId) throw new Error('请扫描/填写目标培养皿');
-        if (store.state.dishes.has(targetDishId)) {
-          mergeTargetInput.value = generateNewDishId();
-          throw new Error(`目标培养皿已被占用，已替换新编号，请再提交`);
-        }
-        store.merge({ parentDishIds: parents, targetDishId });
+        const trayId = mergeTrayInput.value.trim();
+        if (!trayId) throw new Error('请填写盘子编号');
+        store.merge({ parentDishIds: parents, trayId });
         toast('合并成功，生成 1 份');
       }
       resetQueues();
@@ -328,79 +273,31 @@ function renderSplitTab() {
 }
 
 function renderPlaceTab() {
-  placeQueue = [];
   content.innerHTML = `
     <section class="card">
       <div class="card-title">批量上架</div>
-      <div class="small">位置扫一次，多皿连扫</div>
+      <div class="small">只输入盘子编号即可记录上架</div>
     </section>
-    ${inputField('location-id', '位置码', '如 rack-A1')}
-    ${helperRow(locations.map((l) => l.id), 'location-id')}
     <section class="panel card">
-      <label>培养皿 ID 列表（逗号分隔或逐一扫码）</label>
-      <div class="form-grid">
-        <input id="place-dish-input" placeholder="扫描或输入单个皿ID，回车加入" />
-        <button id="place-add" type="button">加入队列</button>
-      </div>
-      <input id="place-dishes" placeholder="或直接粘贴逗号分隔列表" />
-      <div id="place-queue" class="chip-row"></div>
+      <label>盘子编号</label>
+      <input id="place-tray" placeholder="如 T-01" />
+      ${helperRow(trayHints, 'place-tray')}
     </section>
-    <button id="place-submit">提交上架</button>
+    <div class="action-row">
+      <button id="place-submit" class="primary-action">提交上架</button>
+    </div>
   `;
   wireHelpers(content);
-  const locInput = content.querySelector('#location-id');
-  const dishInput = content.querySelector('#place-dishes');
-  const singleInput = content.querySelector('#place-dish-input');
-  const addBtn = content.querySelector('#place-add');
-  const queueEl = content.querySelector('#place-queue');
+  const trayInput = content.querySelector('#place-tray');
   const submit = content.querySelector('#place-submit');
 
-  function renderQueue() {
-    queueEl.innerHTML = placeQueue
-      .map(
-        (id) =>
-          `<span class="chip">${id}<button data-id="${id}" aria-label="remove">×</button></span>`
-      )
-      .join('');
-    queueEl.querySelectorAll('button').forEach((btn) =>
-      btn.addEventListener('click', () => {
-        placeQueue = placeQueue.filter((x) => x !== btn.dataset.id);
-        renderQueue();
-      })
-    );
-  }
-  function addToQueue(id) {
-    if (!id) return;
-    if (placeQueue.includes(id)) return toast('已在队列', 'error');
-    placeQueue.push(id);
-    renderQueue();
-  }
-  addBtn.addEventListener('click', () => {
-    addToQueue(singleInput.value.trim());
-    singleInput.value = '';
-    singleInput.focus();
-  });
-  singleInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addBtn.click();
-    }
-  });
-
   submit.addEventListener('click', () => {
-    const locationId = locInput.value.trim();
-    const manualList = dishInput.value
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const dishIds = [...placeQueue, ...manualList];
     try {
-      store.place({ locationId, dishIds });
-      toast(`上架 ${dishIds.length} 份 @ ${locationId}`);
-      placeQueue = [];
-      renderQueue();
-      dishInput.value = '';
-      singleInput.value = '';
+      const trayId = trayInput.value.trim();
+      if (!trayId) throw new Error('请填写盘子编号');
+      store.place({ trayId });
+      toast(`上架盘子 ${trayId}`);
+      trayInput.value = '';
       renderEventLog();
     } catch (err) {
       toast(err.message || '失败', 'error');
@@ -424,7 +321,9 @@ function renderStatusTab() {
         <option value="变异">变异</option>
       </select>
     </section>
-    <button id="status-submit">提交状态</button>
+    <div class="action-row">
+      <button id="status-submit" class="primary-action">提交状态</button>
+    </div>
   `;
   wireHelpers(content);
   const dishInput = content.querySelector('#status-dish');
@@ -450,7 +349,9 @@ function renderTransferTab() {
     ${inputField('new-dish', '新培养皿 ID', '如 ND-1')}
     ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'old-dish')}
     <section class="helper-row" style="margin-top:-6px"> <button class="helper-button" data-fill="new-dish" data-value="ND-${Math.floor(Math.random()*90+10)}">生成新皿ID</button></section>
-    <button id="transfer-submit">提交转移</button>
+    <div class="action-row">
+      <button id="transfer-submit" class="primary-action">提交转移</button>
+    </div>
   `;
   wireHelpers(content);
   const oldInput = content.querySelector('#old-dish');

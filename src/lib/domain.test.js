@@ -15,16 +15,27 @@ describe('domain operations', () => {
     expect(store.state.events[0].id).toBe(evt.id);
   });
 
+  it('split can generate dishes by count', () => {
+    const evt = store.split({ parentDishId: 'D-1', count: 3, trayId: 'T-01' });
+    expect(evt.outputIds).toHaveLength(3);
+    expect(evt.meta.trayId).toBe('T-01');
+  });
+
   it('merge combines into target dish', () => {
-    const evt = store.merge({ parentDishIds: ['D-1', 'D-2'], targetDishId: 'D-M1' });
+    const evt = store.merge({ parentDishIds: ['D-1', 'D-2'], targetDishId: 'D-M1', trayId: 'T-02' });
     expect(evt.type).toBe('merge');
     expect(evt.outputIds).toHaveLength(1);
     expect(store.state.dishes.has('D-M1')).toBe(true);
   });
 
   it('place records location', () => {
-    const evt = store.place({ locationId: 'rack-A1', dishIds: ['D-1', 'D-2'] });
+    const evt = store.place({ locationId: 'rack-A1', dishIds: ['D-1', 'D-2'], trayId: 'T-01' });
     expect(evt.meta.locationId).toBe('rack-A1');
+  });
+
+  it('place works with tray only', () => {
+    const evt = store.place({ trayId: 'T-03' });
+    expect(evt.meta.trayId).toBe('T-03');
   });
 
   it('status updates plant status', () => {

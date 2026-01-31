@@ -177,6 +177,23 @@ button:disabled {
 
 section.panel { margin-bottom: 14px; }
 
+.action-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.primary-action {
+  width: 68%;
+  max-width: 240px;
+}
+
+@media (min-width: 480px) {
+  .primary-action {
+    width: 56%;
+  }
+}
+
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .chip {
   display: inline-flex;
