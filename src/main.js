@@ -63,9 +63,14 @@ function inputField(id, label, placeholder = '') {
   </section>`;
 }
 
-function helperRow(ids, targetId) {
+function helperRow(ids, targetId, triggerId = '') {
   return `<div class="helper-row">${ids
-    .map((id) => `<button class="helper-button" data-fill="${targetId}" data-value="${id}">${id}</button>`)
+    .map(
+      (id) =>
+        `<button class="helper-button" data-fill="${targetId}" data-value="${id}"${
+          triggerId ? ` data-trigger="${triggerId}"` : ''
+        }>${id}</button>`
+    )
     .join('')}</div>`;
 }
 
@@ -75,6 +80,11 @@ function wireHelpers(root) {
       const target = root.querySelector(`#${btn.dataset.fill}`);
       if (target) target.value = btn.dataset.value;
       target?.focus();
+      const trigger = btn.dataset.trigger;
+      if (trigger) {
+        const tBtn = root.querySelector(`#${trigger}`);
+        tBtn?.click();
+      }
     });
   });
 }
@@ -111,18 +121,19 @@ function renderSplitTab() {
         <input id="merge-target" placeholder="扫描/输入目标皿ID" />
         <button id="merge-target-fill" type="button">生成新皿ID</button>
       </div>
-      ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'merge-target')}
-    </section>
+    ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'merge-target')}
+  </section>
 
-    <section class="panel card" id="merge-parent-panel">
-      <label>父培养皿（多个，逐一扫码加入队列）</label>
-      <div class="form-grid">
-        <input id="merge-parent-input" placeholder="扫描/输入父皿ID，回车加入" />
-        <button id="merge-parent-add" type="button">加入队列</button>
-      </div>
-      <input id="merge-parent-bulk" placeholder="或直接粘贴逗号分隔列表" />
-      <div id="merge-parent-queue" class="chip-row"></div>
-    </section>
+  <section class="panel card" id="merge-parent-panel">
+    <label>父培养皿（多个，逐一扫码加入队列）</label>
+    <div class="form-grid">
+      <input id="merge-parent-input" placeholder="扫描/输入父皿ID，回车加入" />
+      <button id="merge-parent-add" type="button">加入队列</button>
+    </div>
+    <input id="merge-parent-bulk" placeholder="或直接粘贴逗号分隔列表" />
+    ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'merge-parent-input', 'merge-parent-add')}
+    <div id="merge-parent-queue" class="chip-row"></div>
+  </section>
     <button id="split-submit">提交</button>
   `;
   wireHelpers(content);
