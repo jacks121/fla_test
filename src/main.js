@@ -12,6 +12,10 @@ let activeTab = 'split';
 let placeQueue = [];
 const newDishHints = ['ND-101', 'ND-102', 'ND-103', 'ND-104', 'ND-105'];
 
+function generateNewDishId() {
+  return `ND-${Math.floor(Math.random() * 900 + 100)}`;
+}
+
 function toast(msg, type = 'info') {
   let el = document.querySelector('.toast');
   if (!el) {
@@ -232,7 +236,7 @@ function renderSplitTab() {
   updateModeUI();
 
   mergeTargetFill.addEventListener('click', () => {
-    mergeTargetInput.value = `MD-${Math.floor(Math.random() * 900 + 100)}`;
+    mergeTargetInput.value = generateNewDishId();
   });
 
   function renderParentQueue() {
@@ -250,6 +254,10 @@ function renderSplitTab() {
           .filter(Boolean)
           .filter((x) => x !== btn.dataset.id);
         mergeParentBulk.value = bulkList.join(', ');
+        if (mergeTargetInput.value.trim() === btn.dataset.id) {
+          mergeTargetInput.value = generateNewDishId();
+          toast('目标皿不可用，已自动换成新编号');
+        }
         renderParentQueue();
       })
     );
@@ -302,8 +310,10 @@ function renderSplitTab() {
         if (parents.length === 0) throw new Error('请扫描/加入父培养皿');
         const targetDishId = mergeTargetInput.value.trim();
         if (!targetDishId) throw new Error('请扫描/填写目标培养皿');
-        if (store.state.dishes.has(targetDishId))
-          throw new Error(`目标培养皿已被占用，请使用新编号: ${targetDishId}`);
+        if (store.state.dishes.has(targetDishId)) {
+          mergeTargetInput.value = generateNewDishId();
+          throw new Error(`目标培养皿已被占用，已替换新编号，请再提交`);
+        }
         store.merge({ parentDishIds: parents, targetDishId });
         toast('合并成功，生成 1 份');
       }
