@@ -264,6 +264,9 @@ function renderSplitTab() {
         store.merge({ parentDishIds: parents, trayId });
         toast('合并成功，生成 1 份');
       }
+      splitTrayInput.value = '';
+      splitCountInput.value = '3';
+      mergeTrayInput.value = '';
       resetQueues();
       renderEventLog();
     } catch (err) {
@@ -298,6 +301,7 @@ function renderPlaceTab() {
       store.place({ trayId });
       toast(`上架盘子 ${trayId}`);
       trayInput.value = '';
+      trayInput.blur();
       renderEventLog();
     } catch (err) {
       toast(err.message || '失败', 'error');
