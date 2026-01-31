@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>登录 · 花苗流程 POC</title>
+  <meta name="theme-color" content="#0ea5e9" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <div id="app" class="auth-page">
+    <header class="auth-header">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="title">花苗流程 POC</div>
+        <div class="subtitle">模拟登录 · 手机浏览器</div>
+      </div>
+    </header>
+
+    <section class="auth-card">
+      <div class="card-title">欢迎回来</div>
+      <div class="card-sub">输入任意账号与口令进入演示</div>
+      <form id="login-form">
+        <label for="login-user">账号 / 手机号</label>
+        <input id="login-user" autocomplete="username" placeholder="如 13800000000" required />
+
+        <label for="login-pass" style="margin-top:10px;">口令</label>
+        <input id="login-pass" type="password" autocomplete="current-password" placeholder="随意输入" required />
+
+        <div class="auth-actions">
+          <button type="submit" class="primary-action">模拟登录</button>
+        </div>
+      </form>
+    </section>
+
+    <div class="auth-footer">
+      <span>无账户？</span>
+      <a class="link" href="./index.html">直接进入演示</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('login-form');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const user = document.getElementById('login-user').value.trim();
+      const pass = document.getElementById('login-pass').value.trim();
+      if (!user || !pass) return;
+      const btn = form.querySelector('button');
+      btn.disabled = true;
+      btn.textContent = '登录中...';
+      setTimeout(() => {
+        window.location.href = './index.html';
+      }, 500);
+    });
+  </script>
+</body>
+</html>
