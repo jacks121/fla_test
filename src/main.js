@@ -92,11 +92,20 @@ function renderSplitTab() {
         <option value="merge">合并</option>
       </select>
     </section>
-    ${inputField('parent-dish', '父培养皿 ID', '如 D-1 或扫码填入')}
+    ${inputField('parent-dish', '父培养皿 ID（拆分：单个；合并：逗号分隔）', '如 D-1 或扫码填入')}
     ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'parent-dish')}
-    <section class="panel card">
-      <label id="child-label">子苗数量</label>
-      <input id="child-count" type="number" min="1" value="2" />
+    <section class="panel card" id="split-child-panel">
+      <label>目标培养皿（逐一扫码加入队列）</label>
+      <div class="form-grid">
+        <input id="child-dish-input" placeholder="扫描/输入皿ID，回车加入" />
+        <button id="child-add" type="button">加入队列</button>
+      </div>
+      <input id="child-dishes" placeholder="或直接粘贴逗号分隔列表" />
+      <div id="child-queue" class="chip-row"></div>
+    </section>
+    <section class="panel card" id="merge-count-panel">
+      <label id="child-label">生成新苗数量（若不指定目标皿）</label>
+      <input id="child-count" type="number" min="1" value="1" />
     </section>
     <button id="split-submit">提交</button>
   `;
@@ -105,29 +114,83 @@ function renderSplitTab() {
   const parentInput = content.querySelector('#parent-dish');
   const countInput = content.querySelector('#child-count');
   const submit = content.querySelector('#split-submit');
+  const childInput = content.querySelector('#child-dish-input');
+  const childBulk = content.querySelector('#child-dishes');
+  const childAdd = content.querySelector('#child-add');
+  const childQueueEl = content.querySelector('#child-queue');
+  const splitPanel = content.querySelector('#split-child-panel');
+  const mergeCountPanel = content.querySelector('#merge-count-panel');
 
-  function updateLabel() {
-    content.querySelector('#child-label').textContent =
-      modeSel.value === 'split' ? '子苗数量' : '生成新苗数量';
+  let childQueue = [];
+
+  function renderChildQueue() {
+    childQueueEl.innerHTML = childQueue
+      .map(
+        (id) => `<span class="chip">${id}<button data-id="${id}" aria-label="remove">×</button></span>`
+      )
+      .join('');
+    childQueueEl.querySelectorAll('button').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        childQueue = childQueue.filter((x) => x !== btn.dataset.id);
+        renderChildQueue();
+      })
+    );
   }
-  modeSel.addEventListener('change', updateLabel);
-  updateLabel();
+  function addChild(id) {
+    if (!id) return;
+    if (childQueue.includes(id)) return toast('已在队列', 'error');
+    childQueue.push(id);
+    renderChildQueue();
+  }
+  childAdd.addEventListener('click', () => {
+    addChild(childInput.value.trim());
+    childInput.value = '';
+    childInput.focus();
+  });
+  childInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      childAdd.click();
+    }
+  });
+
+  function updateModeUI() {
+    const isSplit = modeSel.value === 'split';
+    splitPanel.style.display = isSplit ? 'block' : 'none';
+    mergeCountPanel.style.display = isSplit ? 'none' : 'block';
+  }
+  modeSel.addEventListener('change', updateModeUI);
+  updateModeUI();
 
   submit.addEventListener('click', () => {
     const parent = parentInput.value.trim();
+    const bulk = childBulk.value
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const targets = [...childQueue, ...bulk];
     const count = Number(countInput.value || '0');
     try {
       if (!parent) throw new Error('请填写父培养皿');
-      if (!count || count < 1) throw new Error('数量需大于 0');
       if (modeSel.value === 'split') {
-        store.split({ parentDishId: parent, count });
-        toast(`拆分成功，生成 ${count} 份`);
+        if (targets.length === 0) throw new Error('请先扫描/加入目标培养皿');
+        store.split({ parentDishId: parent, childDishIds: targets });
+        toast(`拆分成功，生成 ${targets.length} 份`);
       } else {
         const parents = parent.split(',').map((s) => s.trim()).filter(Boolean);
         if (parents.length === 0) throw new Error('请填写父培养皿');
-        store.merge({ parentDishIds: parents, outputs: count });
-        toast(`合并成功，生成 ${count} 份`);
+        if (targets.length) {
+          store.merge({ parentDishIds: parents, childDishIds: targets });
+          toast(`合并成功，生成 ${targets.length} 份`);
+        } else {
+          if (!count || count < 1) throw new Error('数量需大于 0');
+          store.merge({ parentDishIds: parents, outputs: count });
+          toast(`合并成功，生成 ${count} 份`);
+        }
       }
+      childQueue = [];
+      childBulk.value = '';
+      renderChildQueue();
       renderEventLog();
     } catch (err) {
       toast(err.message || '失败', 'error');

@@ -8,8 +8,8 @@ describe('domain operations', () => {
     store = createStore(makeInitialState());
   });
 
-  it('split creates new plants and events', () => {
-    const evt = store.split({ parentDishId: 'D-1', count: 2 });
+  it('split creates new plants with provided dish ids', () => {
+    const evt = store.split({ parentDishId: 'D-1', childDishIds: ['D-X1', 'D-X2'] });
     expect(evt.type).toBe('split');
     expect(evt.outputIds).toHaveLength(2);
     expect(store.state.events[0].id).toBe(evt.id);

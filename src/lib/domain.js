@@ -27,14 +27,18 @@ export function createStore(initial) {
     return state.plants.get(dish.plantId) || null;
   }
 
-  function split({ parentDishId, count, actor = 'emp-01', meta = {} }) {
+  function split({ parentDishId, childDishIds, actor = 'emp-01', meta = {} }) {
     if (!parentDishId) throw new Error('缺少父培养皿');
     const parentPlant = getPlantByDish(parentDishId);
     if (!parentPlant) throw new Error('父花苗不存在');
+    if (!Array.isArray(childDishIds) || childDishIds.length === 0)
+      throw new Error('请提供子培养皿');
+
     const outputs = [];
-    for (let i = 0; i < count; i++) {
+    childDishIds.forEach((dishId) => {
+      if (!dishId) throw new Error('子培养皿编号无效');
+      if (state.dishes.has(dishId)) throw new Error(`培养皿已被占用: ${dishId}`);
       const plantId = uid('P');
-      const dishId = uid('D');
       const plant = {
         id: plantId,
         type: parentPlant.type,
@@ -42,11 +46,10 @@ export function createStore(initial) {
         status: '正常',
         dishId,
       };
-      const dish = { id: dishId, plantId };
       state.plants.set(plantId, plant);
-      state.dishes.set(dishId, dish);
+      state.dishes.set(dishId, { id: dishId, plantId });
       outputs.push(plantId);
-    }
+    });
     return pushEvent({
       id: eventId(),
       type: 'split',
@@ -58,7 +61,7 @@ export function createStore(initial) {
     });
   }
 
-  function merge({ parentDishIds, outputs = 1, actor = 'emp-01', meta = {} }) {
+  function merge({ parentDishIds, outputs = 1, childDishIds = [], actor = 'emp-01', meta = {} }) {
     if (!Array.isArray(parentDishIds) || parentDishIds.length === 0) {
       throw new Error('缺少父培养皿');
     }
@@ -68,9 +71,11 @@ export function createStore(initial) {
       return plant.id;
     });
     const outIds = [];
-    for (let i = 0; i < outputs; i++) {
+    const targetDishes = childDishIds.length ? childDishIds : Array.from({ length: outputs }).map(() => uid('D'));
+    targetDishes.forEach((dishId) => {
+      if (!dishId) throw new Error('输出培养皿无效');
+      if (state.dishes.has(dishId)) throw new Error(`培养皿已被占用: ${dishId}`);
       const plantId = uid('P');
-      const dishId = uid('D');
       state.plants.set(plantId, {
         id: plantId,
         type: '合并苗',
@@ -80,7 +85,7 @@ export function createStore(initial) {
       });
       state.dishes.set(dishId, { id: dishId, plantId });
       outIds.push(plantId);
-    }
+    });
     return pushEvent({
       id: eventId(),
       type: 'merge',
