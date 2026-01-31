@@ -145,6 +145,7 @@ function renderSplitTab() {
 
   let childQueue = [];
   let parentQueue = [];
+  const parentCard = parentInput.closest('.panel.card') || parentInput.parentElement;
 
   function renderChildQueue() {
     childQueueEl.innerHTML = childQueue
@@ -183,7 +184,7 @@ function renderSplitTab() {
     mergeTargetPanel.style.display = isSplit ? 'none' : 'block';
     mergeParentPanel.style.display = isSplit ? 'none' : 'block';
     // 拆分模式才显示单个父皿输入卡片
-    parentInput.parentElement.parentElement.style.display = isSplit ? 'block' : 'none';
+    if (parentCard) parentCard.style.display = isSplit ? 'block' : 'none';
   }
   modeSel.addEventListener('change', updateModeUI);
   updateModeUI();
