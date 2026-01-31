@@ -300,12 +300,17 @@ function renderPlaceTab() {
   content.innerHTML = `
     <section class="card">
       <div class="card-title">批量上架</div>
-      <div class="small">只输入盘子编号即可记录上架</div>
+      <div class="small">盘子编号 + 上架位置</div>
     </section>
     <section class="panel card">
       <label>盘子编号</label>
       <input id="place-tray" placeholder="如 T-01" />
       ${helperRow(trayHints, 'place-tray')}
+    </section>
+    <section class="panel card">
+      <label>上架位置（架/层/位）</label>
+      <input id="place-location" placeholder="如 rack-A1" />
+      ${helperRow(locations.map((l) => l.id), 'place-location')}
     </section>
     <div class="action-row">
       <button id="place-submit" class="primary-action">提交上架</button>
@@ -313,14 +318,19 @@ function renderPlaceTab() {
   `;
   wireHelpers(content);
   const trayInput = content.querySelector('#place-tray');
+  const locationInput = content.querySelector('#place-location');
   const submit = content.querySelector('#place-submit');
 
   submit.addEventListener('click', () => {
     try {
       const trayId = trayInput.value.trim();
       if (!trayId) throw new Error('请填写盘子编号');
-      store.place({ trayId });
-      toast(`上架盘子 ${trayId}`);
+      const locationId = locationInput.value.trim();
+      if (!locationId) throw new Error('请填写上架位置');
+      store.place({ trayId, locationId });
+      toast(`上架盘子 ${trayId} @ ${locationId}`);
+      trayInput.value = '';
+      locationInput.value = '';
       renderEventLog();
     } catch (err) {
       toast(err.message || '失败', 'error');
