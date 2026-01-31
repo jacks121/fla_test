@@ -10,6 +10,32 @@
 
 ---
 
+## Required APIs (for backend phase)
+
+> POC 先用 mock；以下为后端接入时必须提供的最小 API。
+
+### 1) Master Data
+- `GET /api/meta`
+  - 返回：`locations`, `trays`, `statusEnum`, `stages`, `types`
+
+### 2) Event Ingest (核心)
+- `POST /api/events`
+  - `type: split | merge | place | status | transfer`
+  - 统一字段：`actorId`, `ts`, `meta`
+  - 分流字段（示例）：
+    - split: `{ parentDishId, trayId, count }`
+    - merge: `{ parentDishIds[], trayId, targetDishId? }`
+    - place: `{ trayId, locationId }`
+    - status: `{ dishId, status }`
+    - transfer: `{ fromDishId, toDishId }`
+
+### 3) Event Log & Query
+- `GET /api/events?type=&from=&to=&actorId=`
+
+### 4) Entities (可选但常用)
+- `GET /api/plants?query=`
+- `GET /api/dishes?query=`
+
 ### Task 1: Initialize project scaffolding
 
 **Files:**
