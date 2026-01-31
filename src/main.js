@@ -175,9 +175,6 @@ function renderSplitTab() {
     parentQueue = [];
     mergeParentBulk.value = '';
     mergeParentInput.value = '';
-    mergeTrayInput.value = '';
-    splitTrayInput.value = '';
-    splitCountInput.value = '3';
     renderParentQueue();
   }
 
@@ -264,9 +261,6 @@ function renderSplitTab() {
         store.merge({ parentDishIds: parents, trayId });
         toast('合并成功，生成 1 份');
       }
-      splitTrayInput.value = '';
-      splitCountInput.value = '3';
-      mergeTrayInput.value = '';
       parentInput.value = '';
       mergeParentInput.value = '';
       resetQueues();
@@ -302,8 +296,6 @@ function renderPlaceTab() {
       if (!trayId) throw new Error('请填写盘子编号');
       store.place({ trayId });
       toast(`上架盘子 ${trayId}`);
-      trayInput.value = '';
-      trayInput.blur();
       renderEventLog();
     } catch (err) {
       toast(err.message || '失败', 'error');
