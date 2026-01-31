@@ -184,6 +184,12 @@ function renderSplitTab() {
     childQueueEl.querySelectorAll('button').forEach((btn) =>
       btn.addEventListener('click', () => {
         childQueue = childQueue.filter((x) => x !== btn.dataset.id);
+        const bulkList = childBulk.value
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .filter((x) => x !== btn.dataset.id);
+        childBulk.value = bulkList.join(', ');
         renderChildQueue();
       })
     );
@@ -237,6 +243,12 @@ function renderSplitTab() {
     mergeParentQueueEl.querySelectorAll('button').forEach((btn) =>
       btn.addEventListener('click', () => {
         parentQueue = parentQueue.filter((x) => x !== btn.dataset.id);
+        const bulkList = mergeParentBulk.value
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .filter((x) => x !== btn.dataset.id);
+        mergeParentBulk.value = bulkList.join(', ');
         renderParentQueue();
       })
     );
