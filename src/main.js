@@ -114,6 +114,7 @@ function renderSplitTab() {
         <button id="child-add" type="button">加入队列</button>
       </div>
       <input id="child-dishes" placeholder="或直接粘贴逗号分隔列表" />
+      <button id="child-clear" type="button" class="ghost" style="margin-top:6px;width:100%;">清空队列</button>
       <div id="child-queue" class="chip-row"></div>
     </section>
 
@@ -133,6 +134,7 @@ function renderSplitTab() {
     </div>
     <input id="merge-parent-bulk" placeholder="或直接粘贴逗号分隔列表" />
     ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'merge-parent-input', 'merge-parent-add')}
+    <button id="merge-parent-clear" type="button" class="ghost" style="margin-top:6px;width:100%;">清空队列</button>
     <div id="merge-parent-queue" class="chip-row"></div>
   </section>
     <button id="split-submit">提交</button>
@@ -144,6 +146,7 @@ function renderSplitTab() {
   const childInput = content.querySelector('#child-dish-input');
   const childBulk = content.querySelector('#child-dishes');
   const childAdd = content.querySelector('#child-add');
+  const childClear = content.querySelector('#child-clear');
   const childQueueEl = content.querySelector('#child-queue');
   const splitPanel = content.querySelector('#split-child-panel');
   const mergeTargetPanel = content.querySelector('#merge-target-panel');
@@ -153,6 +156,7 @@ function renderSplitTab() {
   const mergeParentInput = content.querySelector('#merge-parent-input');
   const mergeParentAdd = content.querySelector('#merge-parent-add');
   const mergeParentBulk = content.querySelector('#merge-parent-bulk');
+  const mergeParentClear = content.querySelector('#merge-parent-clear');
   const mergeParentQueueEl = content.querySelector('#merge-parent-queue');
 
   let childQueue = [];
@@ -200,6 +204,11 @@ function renderSplitTab() {
       childAdd.click();
     }
   });
+  childClear.addEventListener('click', () => {
+    childQueue = [];
+    childBulk.value = '';
+    renderChildQueue();
+  });
 
   function updateModeUI() {
     const isSplit = modeSel.value === 'split';
@@ -246,6 +255,11 @@ function renderSplitTab() {
       e.preventDefault();
       mergeParentAdd.click();
     }
+  });
+  mergeParentClear.addEventListener('click', () => {
+    parentQueue = [];
+    mergeParentBulk.value = '';
+    renderParentQueue();
   });
 
   submit.addEventListener('click', () => {
