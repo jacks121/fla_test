@@ -83,7 +83,7 @@ function renderSplitTab() {
   content.innerHTML = `
     <section class="card">
       <div class="card-title">拆分/合并</div>
-      <div class="small">父扫一次，多子连扫。合并可输入多个父。</div>
+      <div class="small">拆分：父→子队列；合并：先选目标皿，再扫多个父。</div>
     </section>
     <section class="card">
       <label>模式</label>
@@ -92,8 +92,9 @@ function renderSplitTab() {
         <option value="merge">合并</option>
       </select>
     </section>
-    ${inputField('parent-dish', '父培养皿 ID（拆分：单个；合并：逗号分隔）', '如 D-1 或扫码填入')}
+    ${inputField('parent-dish', '父培养皿 ID（仅拆分模式，单个）', '如 D-1 或扫码填入')}
     ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'parent-dish')}
+
     <section class="panel card" id="split-child-panel">
       <label>目标培养皿（逐一扫码加入队列）</label>
       <div class="form-grid">
@@ -110,6 +111,17 @@ function renderSplitTab() {
         <input id="merge-target" placeholder="扫描/输入目标皿ID" />
         <button id="merge-target-fill" type="button">生成新皿ID</button>
       </div>
+      ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'merge-target')}
+    </section>
+
+    <section class="panel card" id="merge-parent-panel">
+      <label>父培养皿（多个，逐一扫码加入队列）</label>
+      <div class="form-grid">
+        <input id="merge-parent-input" placeholder="扫描/输入父皿ID，回车加入" />
+        <button id="merge-parent-add" type="button">加入队列</button>
+      </div>
+      <input id="merge-parent-bulk" placeholder="或直接粘贴逗号分隔列表" />
+      <div id="merge-parent-queue" class="chip-row"></div>
     </section>
     <button id="split-submit">提交</button>
   `;
@@ -125,8 +137,14 @@ function renderSplitTab() {
   const mergeTargetPanel = content.querySelector('#merge-target-panel');
   const mergeTargetInput = content.querySelector('#merge-target');
   const mergeTargetFill = content.querySelector('#merge-target-fill');
+  const mergeParentPanel = content.querySelector('#merge-parent-panel');
+  const mergeParentInput = content.querySelector('#merge-parent-input');
+  const mergeParentAdd = content.querySelector('#merge-parent-add');
+  const mergeParentBulk = content.querySelector('#merge-parent-bulk');
+  const mergeParentQueueEl = content.querySelector('#merge-parent-queue');
 
   let childQueue = [];
+  let parentQueue = [];
 
   function renderChildQueue() {
     childQueueEl.innerHTML = childQueue
@@ -163,6 +181,9 @@ function renderSplitTab() {
     const isSplit = modeSel.value === 'split';
     splitPanel.style.display = isSplit ? 'block' : 'none';
     mergeTargetPanel.style.display = isSplit ? 'none' : 'block';
+    mergeParentPanel.style.display = isSplit ? 'none' : 'block';
+    // 拆分模式才显示单个父皿输入卡片
+    parentInput.parentElement.parentElement.style.display = isSplit ? 'block' : 'none';
   }
   modeSel.addEventListener('change', updateModeUI);
   updateModeUI();
@@ -171,22 +192,57 @@ function renderSplitTab() {
     mergeTargetInput.value = `MD-${Math.floor(Math.random() * 900 + 100)}`;
   });
 
+  function renderParentQueue() {
+    mergeParentQueueEl.innerHTML = parentQueue
+      .map(
+        (id) => `<span class="chip">${id}<button data-id="${id}" aria-label="remove">×</button></span>`
+      )
+      .join('');
+    mergeParentQueueEl.querySelectorAll('button').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        parentQueue = parentQueue.filter((x) => x !== btn.dataset.id);
+        renderParentQueue();
+      })
+    );
+  }
+  function addParent(id) {
+    if (!id) return;
+    if (parentQueue.includes(id)) return toast('已在队列', 'error');
+    parentQueue.push(id);
+    renderParentQueue();
+  }
+  mergeParentAdd.addEventListener('click', () => {
+    addParent(mergeParentInput.value.trim());
+    mergeParentInput.value = '';
+    mergeParentInput.focus();
+  });
+  mergeParentInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      mergeParentAdd.click();
+    }
+  });
+
   submit.addEventListener('click', () => {
-    const parent = parentInput.value.trim();
     const bulk = childBulk.value
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
     const targets = [...childQueue, ...bulk];
     try {
-      if (!parent) throw new Error('请填写父培养皿');
       if (modeSel.value === 'split') {
+        const parent = parentInput.value.trim();
+        if (!parent) throw new Error('请填写父培养皿');
         if (targets.length === 0) throw new Error('请先扫描/加入目标培养皿');
         store.split({ parentDishId: parent, childDishIds: targets });
         toast(`拆分成功，生成 ${targets.length} 份`);
       } else {
-        const parents = parent.split(',').map((s) => s.trim()).filter(Boolean);
-        if (parents.length === 0) throw new Error('请填写父培养皿');
+        const parentBulkList = mergeParentBulk.value
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const parents = [...parentQueue, ...parentBulkList];
+        if (parents.length === 0) throw new Error('请扫描/加入父培养皿');
         const targetDishId = mergeTargetInput.value.trim();
         if (!targetDishId) throw new Error('请扫描/填写目标培养皿');
         store.merge({ parentDishIds: parents, targetDishId });
@@ -195,7 +251,11 @@ function renderSplitTab() {
       childQueue = [];
       childBulk.value = '';
       mergeTargetInput.value = '';
+      parentQueue = [];
+      mergeParentBulk.value = '';
+      mergeParentInput.value = '';
       renderChildQueue();
+      renderParentQueue();
       renderEventLog();
     } catch (err) {
       toast(err.message || '失败', 'error');
