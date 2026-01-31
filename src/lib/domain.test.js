@@ -15,10 +15,11 @@ describe('domain operations', () => {
     expect(store.state.events[0].id).toBe(evt.id);
   });
 
-  it('merge creates output plants', () => {
-    const evt = store.merge({ parentDishIds: ['D-1', 'D-2'], outputs: 1 });
+  it('merge combines into target dish', () => {
+    const evt = store.merge({ parentDishIds: ['D-1', 'D-2'], targetDishId: 'D-M1' });
     expect(evt.type).toBe('merge');
     expect(evt.outputIds).toHaveLength(1);
+    expect(store.state.dishes.has('D-M1')).toBe(true);
   });
 
   it('place records location', () => {

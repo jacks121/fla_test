@@ -61,7 +61,7 @@ export function createStore(initial) {
     });
   }
 
-  function merge({ parentDishIds, outputs = 1, childDishIds = [], actor = 'emp-01', meta = {} }) {
+  function merge({ parentDishIds, targetDishId, actor = 'emp-01', meta = {} }) {
     if (!Array.isArray(parentDishIds) || parentDishIds.length === 0) {
       throw new Error('缺少父培养皿');
     }
@@ -70,30 +70,27 @@ export function createStore(initial) {
       if (!plant) throw new Error('父花苗不存在');
       return plant.id;
     });
-    const outIds = [];
-    const targetDishes = childDishIds.length ? childDishIds : Array.from({ length: outputs }).map(() => uid('D'));
-    targetDishes.forEach((dishId) => {
-      if (!dishId) throw new Error('输出培养皿无效');
-      if (state.dishes.has(dishId)) throw new Error(`培养皿已被占用: ${dishId}`);
-      const plantId = uid('P');
-      state.plants.set(plantId, {
-        id: plantId,
-        type: '合并苗',
-        stage: '萌发',
-        status: '正常',
-        dishId,
-      });
-      state.dishes.set(dishId, { id: dishId, plantId });
-      outIds.push(plantId);
+    if (!targetDishId) throw new Error('缺少目标培养皿');
+    if (state.dishes.has(targetDishId)) throw new Error(`培养皿已被占用: ${targetDishId}`);
+
+    const plantId = uid('P');
+    state.plants.set(plantId, {
+      id: plantId,
+      type: '合并苗',
+      stage: '萌发',
+      status: '正常',
+      dishId: targetDishId,
     });
+    state.dishes.set(targetDishId, { id: targetDishId, plantId });
+
     return pushEvent({
       id: eventId(),
       type: 'merge',
       actor,
       ts: ts(),
       inputIds: parentPlantIds,
-      outputIds: outIds,
-      meta,
+      outputIds: [plantId],
+      meta: { ...meta, targetDishId },
     });
   }
 
