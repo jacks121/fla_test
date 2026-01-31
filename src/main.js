@@ -124,6 +124,7 @@ function renderSplitTab() {
         <input id="merge-target" placeholder="扫描/输入目标皿ID" />
         <button id="merge-target-fill" type="button">生成新皿ID</button>
       </div>
+      ${helperRow(dishes.slice(0, 5).map((d) => d.id), 'merge-target')}
   </section>
 
   <section class="panel card" id="merge-parent-panel">
@@ -190,6 +191,7 @@ function renderSplitTab() {
   function addChild(id) {
     if (!id) return;
     if (childQueue.includes(id)) return toast('已在队列', 'error');
+    childBulk.value = '';
     childQueue.push(id);
     renderChildQueue();
   }
@@ -242,6 +244,7 @@ function renderSplitTab() {
   function addParent(id) {
     if (!id) return;
     if (parentQueue.includes(id)) return toast('已在队列', 'error');
+    mergeParentBulk.value = '';
     parentQueue.push(id);
     renderParentQueue();
   }
