@@ -39,3 +39,10 @@
 - Keep scope minimal: show scanning flows and event logging with in-memory or simple storage.
 - POC should be a single-page app accessible from mobile browsers.
 - Use bottom tab navigation with four modes: split/merge, placement, status, transfer.
+
+## Server Backend Notes
+
+- Backend will be a minimal Express app with lowdb JSON storage.
+- API surface based on Required APIs in docs/plans/2026-01-31-flower-seedling-automation-poc-impl.md.
+- Event-driven writes: split/merge/place/status/transfer.
+- Storage: meta (locations/trays/status enum), plants, dishes, events.

@@ -1,8 +1,8 @@
-# Task Plan: POC Backlog and Iteration Plan
+# Task Plan: Server-Side Backend (POC)
 
 ## Goal
 
-Create a POC-focused iteration plan and requirement backlog using mock data and mock QR codes, updated for a single-page mobile web app.
+Implement a minimal backend API for the flower seedling workflow using a lightweight JSON database.
 
 ## Phases
 
@@ -13,19 +13,19 @@ Create a POC-focused iteration plan and requirement backlog using mock data and 
 
 ## Key Questions
 
-1. Which flows must be demonstrated in the POC demo?
-2. What is the minimum data and UI needed to prove the workflow?
+1. What is the minimal set of endpoints to support the current POC UI?
+2. What persistence and validation are required for a stable demo?
 
 ## Decisions Made
 
-- POC uses mock data and mock QR codes only.
-- Focus on a demoable workflow rather than production readiness.
-- POC is a single-page app for mobile browser access.
+- Use Node.js + Express + lowdb (JSON) for a simple server.
+- Implement the required API list already documented in the POC plan.
+- TDD for endpoint behavior with supertest + vitest.
 
 ## Errors Encountered
 
-- None yet.
+- lowdb Memory adapter not available; switched to temp JSON file for tests.
 
 ## Status
 
-**Currently in Phase 4** - Review completed and ready to deliver.
+**Currently in Phase 4** - Backend implemented and tests passing.
