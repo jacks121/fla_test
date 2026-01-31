@@ -267,6 +267,8 @@ function renderSplitTab() {
       splitTrayInput.value = '';
       splitCountInput.value = '3';
       mergeTrayInput.value = '';
+      parentInput.value = '';
+      mergeParentInput.value = '';
       resetQueues();
       renderEventLog();
     } catch (err) {
