@@ -9,6 +9,7 @@ const filterType = document.getElementById('filter-type');
 const undoBtn = document.getElementById('undo-btn');
 
 let activeTab = 'split';
+let placeQueue = [];
 
 function toast(msg, type = 'info') {
   let el = document.querySelector('.toast');
@@ -73,6 +74,7 @@ function wireHelpers(root) {
     btn.addEventListener('click', () => {
       const target = root.querySelector(`#${btn.dataset.fill}`);
       if (target) target.value = btn.dataset.value;
+      target?.focus();
     });
   });
 }
@@ -115,11 +117,14 @@ function renderSplitTab() {
     const parent = parentInput.value.trim();
     const count = Number(countInput.value || '0');
     try {
+      if (!parent) throw new Error('请填写父培养皿');
+      if (!count || count < 1) throw new Error('数量需大于 0');
       if (modeSel.value === 'split') {
         store.split({ parentDishId: parent, count });
         toast(`拆分成功，生成 ${count} 份`);
       } else {
         const parents = parent.split(',').map((s) => s.trim()).filter(Boolean);
+        if (parents.length === 0) throw new Error('请填写父培养皿');
         store.merge({ parentDishIds: parents, outputs: count });
         toast(`合并成功，生成 ${count} 份`);
       }
@@ -131,6 +136,7 @@ function renderSplitTab() {
 }
 
 function renderPlaceTab() {
+  placeQueue = [];
   content.innerHTML = `
     <section class="card">
       <div class="card-title">批量上架</div>
@@ -140,24 +146,69 @@ function renderPlaceTab() {
     ${helperRow(locations.map((l) => l.id), 'location-id')}
     <section class="panel card">
       <label>培养皿 ID 列表（逗号分隔或逐一扫码）</label>
-      <input id="place-dishes" placeholder="D-1, D-2" />
+      <div class="form-grid">
+        <input id="place-dish-input" placeholder="扫描或输入单个皿ID，回车加入" />
+        <button id="place-add" type="button">加入队列</button>
+      </div>
+      <input id="place-dishes" placeholder="或直接粘贴逗号分隔列表" />
+      <div id="place-queue" class="chip-row"></div>
     </section>
     <button id="place-submit">提交上架</button>
   `;
   wireHelpers(content);
   const locInput = content.querySelector('#location-id');
   const dishInput = content.querySelector('#place-dishes');
+  const singleInput = content.querySelector('#place-dish-input');
+  const addBtn = content.querySelector('#place-add');
+  const queueEl = content.querySelector('#place-queue');
   const submit = content.querySelector('#place-submit');
+
+  function renderQueue() {
+    queueEl.innerHTML = placeQueue
+      .map(
+        (id) =>
+          `<span class="chip">${id}<button data-id="${id}" aria-label="remove">×</button></span>`
+      )
+      .join('');
+    queueEl.querySelectorAll('button').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        placeQueue = placeQueue.filter((x) => x !== btn.dataset.id);
+        renderQueue();
+      })
+    );
+  }
+  function addToQueue(id) {
+    if (!id) return;
+    if (placeQueue.includes(id)) return toast('已在队列', 'error');
+    placeQueue.push(id);
+    renderQueue();
+  }
+  addBtn.addEventListener('click', () => {
+    addToQueue(singleInput.value.trim());
+    singleInput.value = '';
+    singleInput.focus();
+  });
+  singleInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addBtn.click();
+    }
+  });
 
   submit.addEventListener('click', () => {
     const locationId = locInput.value.trim();
-    const dishIds = dishInput.value
+    const manualList = dishInput.value
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
+    const dishIds = [...placeQueue, ...manualList];
     try {
       store.place({ locationId, dishIds });
       toast(`上架 ${dishIds.length} 份 @ ${locationId}`);
+      placeQueue = [];
+      renderQueue();
+      dishInput.value = '';
+      singleInput.value = '';
       renderEventLog();
     } catch (err) {
       toast(err.message || '失败', 'error');
@@ -216,6 +267,8 @@ function renderTransferTab() {
     try {
       store.transfer({ fromDishId: oldInput.value.trim(), toDishId: newInput.value.trim() });
       toast('已转移');
+      oldInput.value = '';
+      newInput.value = '';
       renderEventLog();
     } catch (err) {
       toast(err.message || '失败', 'error');
