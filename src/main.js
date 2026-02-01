@@ -4,7 +4,7 @@ import { filterEventsByActor } from './lib/history.js';
 import { startScan, startContinuousScan, stopScan } from './lib/scanner.js';
 
 const url = new URL(window.location.href);
-const apiBase = url.searchParams.get('api') || `${url.protocol}//${url.hostname}:8787`;
+const apiBase = url.searchParams.get('api') || '';
 const api = createApi(apiBase);
 const state = {
   meta: { trays: [], locations: [], statusEnum: [] },
