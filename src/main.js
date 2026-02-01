@@ -1,6 +1,7 @@
 import { createApi } from './lib/api.js';
 import { normalizeParentIds } from './lib/merge.js';
 import { filterEventsByActor } from './lib/history.js';
+import { startScan, startContinuousScan, stopScan } from './lib/scanner.js';
 
 const url = new URL(window.location.href);
 const apiBase = url.searchParams.get('api') || `${url.protocol}//${url.hostname}:8787`;
@@ -198,6 +199,28 @@ function helperRow(ids, targetId, triggerId = '') {
     )
     .join('')}</div>`
     : '';
+}
+
+function scanInput(id, placeholder) {
+  return `<div class="input-with-scan">
+    <input id="${id}" placeholder="${placeholder}" />
+    <button type="button" class="scan-btn" data-scan-target="${id}">扫码</button>
+  </div>`;
+}
+
+function wireScanButtons(root) {
+  root.querySelectorAll('.scan-btn[data-scan-target]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.scanTarget;
+      const input = root.querySelector('#' + targetId);
+      startScan((text) => {
+        if (input) input.value = text;
+        input?.focus();
+        const trigger = btn.dataset.scanTrigger;
+        if (trigger) root.querySelector('#' + trigger)?.click();
+      });
+    });
+  });
 }
 
 function wireHelpers(root) {
