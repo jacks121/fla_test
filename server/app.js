@@ -1,16 +1,30 @@
 import express from 'express';
 import cors from 'cors';
 import { createDomain } from './domain.js';
+import { createAuth } from './auth.js';
 
 export function createApp({ db }) {
   const app = express();
   const domain = createDomain(db);
+  const auth = createAuth(db);
   app.use(cors());
   app.use(express.json());
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });
   });
+
+  app.post('/api/login', (req, res) => {
+    const { username, password } = req.body || {};
+    try {
+      const session = auth.login({ username, password });
+      res.json(session);
+    } catch (err) {
+      res.status(400).json({ error: err.message || 'Bad credentials' });
+    }
+  });
+
+  app.use(auth.authenticate);
 
   app.get('/api/meta', async (_req, res) => {
     await db.read();
@@ -68,7 +82,7 @@ export function createApp({ db }) {
         default:
           return res.status(400).json({ error: 'Invalid event type' });
       }
-      event.actorId = actorId || event.actorId;
+      event.actorId = actorId || req.user?.id || event.actorId;
       db.data.events.unshift(event);
       await db.write();
       res.json(event);

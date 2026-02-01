@@ -4,134 +4,135 @@ function ts() {
   return new Date().toISOString();
 }
 
-function nextId(prefix, items) {
-  const max = items.reduce((acc, item) => {
-    if (!item.id?.startsWith(prefix + '-')) return acc;
-    const num = Number(item.id.split('-')[1]);
-    return Number.isFinite(num) ? Math.max(acc, num) : acc;
-  }, 0);
-  return `${prefix}-${max + 1}`;
-}
-
 export function createDomain(db) {
-  function createEvent({ type, actorId, inputIds = [], outputIds = [], meta = {} }) {
-    return {
-      id: randomUUID(),
-      type,
-      actorId,
-      ts: ts(),
-      inputIds,
-      outputIds,
-      meta,
-    };
+  const stmts = {
+    findPlantById: db.prepare('SELECT * FROM plants WHERE id = ?'),
+    findDishById: db.prepare('SELECT * FROM dishes WHERE id = ?'),
+    dishExists: db.prepare('SELECT 1 FROM dishes WHERE id = ?'),
+    insertPlant: db.prepare(
+      'INSERT INTO plants (id, type, stage, status, dishId) VALUES (?, ?, ?, ?, ?)'
+    ),
+    insertDish: db.prepare('INSERT INTO dishes (id, plantId) VALUES (?, ?)'),
+    insertEvent: db.prepare(
+      'INSERT INTO events (id, type, actorId, ts, inputIds, outputIds, meta) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ),
+    updatePlantStatus: db.prepare('UPDATE plants SET status = ? WHERE id = ?'),
+    updatePlantDishId: db.prepare('UPDATE plants SET dishId = ? WHERE id = ?'),
+    deleteDish: db.prepare('DELETE FROM dishes WHERE id = ?'),
+    maxPlantNum: db.prepare(
+      "SELECT MAX(CAST(SUBSTR(id, 3) AS INTEGER)) as maxNum FROM plants WHERE id LIKE 'P-%'"
+    ),
+    maxDishNum: db.prepare(
+      "SELECT MAX(CAST(SUBSTR(id, 3) AS INTEGER)) as maxNum FROM dishes WHERE id LIKE 'D-%'"
+    ),
+  };
+
+  function nextPlantId() {
+    return `P-${(stmts.maxPlantNum.get().maxNum || 0) + 1}`;
   }
 
-  function split({ parentDishId, trayId, count }) {
-    const parentDish = db.data.dishes.find((d) => d.id === parentDishId);
+  function nextDishId() {
+    return `D-${(stmts.maxDishNum.get().maxNum || 0) + 1}`;
+  }
+
+  function persistEvent(event) {
+    stmts.insertEvent.run(
+      event.id, event.type, event.actorId, event.ts,
+      JSON.stringify(event.inputIds),
+      JSON.stringify(event.outputIds),
+      JSON.stringify(event.meta)
+    );
+    return event;
+  }
+
+  function createEvent({ type, actorId, inputIds = [], outputIds = [], meta = {} }) {
+    return persistEvent({ id: randomUUID(), type, actorId, ts: ts(), inputIds, outputIds, meta });
+  }
+
+  const split = db.transaction(({ parentDishId, trayId, count, actorId = 'emp-01' }) => {
+    const parentDish = stmts.findDishById.get(parentDishId);
     if (!parentDish) throw new Error('父培养皿不存在');
-    const parentPlant = db.data.plants.find((p) => p.id === parentDish.plantId);
+    const parentPlant = stmts.findPlantById.get(parentDish.plantId);
     if (!parentPlant) throw new Error('父花苗不存在');
     if (!count || count < 1) throw new Error('数量需大于 0');
+
     const outputIds = [];
     for (let i = 0; i < count; i++) {
-      const plantId = nextId('P', db.data.plants);
-      const dishId = nextId('D', db.data.dishes);
-      db.data.plants.push({
-        id: plantId,
-        type: parentPlant.type,
-        stage: parentPlant.stage,
-        status: '正常',
-        dishId,
-      });
-      db.data.dishes.push({ id: dishId, plantId });
+      const plantId = nextPlantId();
+      const dishId = nextDishId();
+      stmts.insertPlant.run(plantId, parentPlant.type, parentPlant.stage, '正常', dishId);
+      stmts.insertDish.run(dishId, plantId);
       outputIds.push(plantId);
     }
+
     return createEvent({
-      type: 'split',
-      actorId: 'emp-01',
-      inputIds: [parentPlant.id],
-      outputIds,
+      type: 'split', actorId,
+      inputIds: [parentPlant.id], outputIds,
       meta: { trayId, count },
     });
-  }
+  });
 
-  function merge({ parentDishIds, trayId, targetDishId }) {
+  const merge = db.transaction(({ parentDishIds, trayId, targetDishId, actorId = 'emp-01' }) => {
     if (!Array.isArray(parentDishIds) || parentDishIds.length === 0)
       throw new Error('父培养皿不能为空');
     const parentPlantIds = parentDishIds.map((id) => {
-      const dish = db.data.dishes.find((d) => d.id === id);
+      const dish = stmts.findDishById.get(id);
       if (!dish) throw new Error('父培养皿不存在');
       return dish.plantId;
     });
-    const dishId = targetDishId || nextId('D', db.data.dishes);
-    if (db.data.dishes.some((d) => d.id === dishId)) throw new Error('培养皿已被占用');
-    const plantId = nextId('P', db.data.plants);
-    db.data.plants.push({
-      id: plantId,
-      type: '合并苗',
-      stage: '萌发',
-      status: '正常',
-      dishId,
-    });
-    db.data.dishes.push({ id: dishId, plantId });
+    const dishId = targetDishId || nextDishId();
+    if (stmts.dishExists.get(dishId)) throw new Error('培养皿已被占用');
+
+    const plantId = nextPlantId();
+    stmts.insertPlant.run(plantId, '合并苗', '萌发', '正常', dishId);
+    stmts.insertDish.run(dishId, plantId);
+
     return createEvent({
-      type: 'merge',
-      actorId: 'emp-01',
-      inputIds: parentPlantIds,
-      outputIds: [plantId],
+      type: 'merge', actorId,
+      inputIds: parentPlantIds, outputIds: [plantId],
       meta: { trayId, targetDishId: dishId },
     });
-  }
+  });
 
-  function place({ trayId, locationId }) {
+  function place({ trayId, locationId, actorId = 'emp-01' }) {
     if (!trayId) throw new Error('盘子编号不能为空');
     if (!locationId) throw new Error('上架位置不能为空');
     return createEvent({
-      type: 'place',
-      actorId: 'emp-01',
-      inputIds: [],
-      outputIds: [],
+      type: 'place', actorId,
+      inputIds: [], outputIds: [],
       meta: { trayId, locationId },
     });
   }
 
-  function updateStatus({ dishId, status }) {
-    const dish = db.data.dishes.find((d) => d.id === dishId);
+  const updateStatus = db.transaction(({ dishId, status, actorId = 'emp-01' }) => {
+    const dish = stmts.findDishById.get(dishId);
     if (!dish) throw new Error('培养皿不存在');
-    const plant = db.data.plants.find((p) => p.id === dish.plantId);
+    const plant = stmts.findPlantById.get(dish.plantId);
     if (!plant) throw new Error('花苗不存在');
-    plant.status = status;
+    stmts.updatePlantStatus.run(status, plant.id);
     return createEvent({
-      type: 'status',
-      actorId: 'emp-01',
-      inputIds: [plant.id],
-      outputIds: [],
+      type: 'status', actorId,
+      inputIds: [plant.id], outputIds: [],
       meta: { status },
     });
-  }
+  });
 
-  function transfer({ fromDishId, toDishId }) {
-    const fromDish = db.data.dishes.find((d) => d.id === fromDishId);
+  const transfer = db.transaction(({ fromDishId, toDishId, actorId = 'emp-01' }) => {
+    if (!fromDishId || !toDishId) throw new Error('缺少培养皿');
+    const fromDish = stmts.findDishById.get(fromDishId);
     if (!fromDish) throw new Error('原培养皿不存在');
-    if (db.data.dishes.some((d) => d.id === toDishId)) throw new Error('目标培养皿已占用');
-    const plant = db.data.plants.find((p) => p.id === fromDish.plantId);
+    if (stmts.dishExists.get(toDishId)) throw new Error('目标培养皿已占用');
+    const plant = stmts.findPlantById.get(fromDish.plantId);
     if (!plant) throw new Error('花苗不存在');
-    fromDish.id = toDishId;
-    plant.dishId = toDishId;
+    stmts.deleteDish.run(fromDishId);
+    stmts.insertDish.run(toDishId, plant.id);
+    stmts.updatePlantDishId.run(toDishId, plant.id);
     return createEvent({
-      type: 'transfer',
-      actorId: 'emp-01',
-      inputIds: [plant.id],
-      outputIds: [],
+      type: 'transfer', actorId,
+      inputIds: [plant.id], outputIds: [],
       meta: { fromDishId, toDishId },
     });
-  }
+  });
 
-  return {
-    split,
-    merge,
-    place,
-    updateStatus,
-    transfer,
-  };
+  return { split, merge, place, updateStatus, transfer };
 }
