@@ -21,8 +21,7 @@
   "dependencies": {
     "better-sqlite3": "^12.6.2",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "lowdb": "^6.1.1"
+    "express": "^4.19.2"
   },
   "devDependencies": {
     "supertest": "^7.0.0",
