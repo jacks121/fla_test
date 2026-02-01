@@ -274,18 +274,18 @@ function renderSplitTab() {
     </section>
     <section class="panel card" id="create-tray-panel">
       <label>盘子编号</label>
-      <input id="create-tray" placeholder="如 T-01" />
+      ${scanInput('create-tray', '如 T-01')}
       ${helperRow(trayIds(), 'create-tray')}
     </section>
 
     <section class="panel card" id="split-parent-panel">
       <label for="parent-dish">父培养皿 ID（仅拆分模式，单个）</label>
-      <input id="parent-dish" placeholder="如 D-1 或扫码填入" />
+      ${scanInput('parent-dish', '如 D-1 或扫码填入')}
       ${helperRow(dishIds().slice(0, 5), 'parent-dish')}
     </section>
     <section class="panel card" id="split-tray-panel">
       <label>盘子编号（拆分结果所在盘）</label>
-      <input id="split-tray" placeholder="如 T-01" />
+      ${scanInput('split-tray', '如 T-01')}
       ${helperRow(trayIds(), 'split-tray')}
     </section>
     <section class="panel card" id="split-count-panel">
@@ -295,18 +295,14 @@ function renderSplitTab() {
 
     <section class="panel card" id="merge-tray-panel">
       <label>合并后盘子编号</label>
-      <div class="form-grid">
-        <input id="merge-tray" placeholder="如 T-02" />
-        <button id="merge-tray-fill" type="button">生成盘号</button>
-      </div>
+      ${scanInput('merge-tray', '如 T-02')}
+      <button id="merge-tray-fill" type="button" class="ghost" style="margin-top:6px;width:100%">生成盘号</button>
       ${helperRow(trayIds(), 'merge-tray')}
     </section>
     <section class="panel card" id="merge-target-panel">
       <label>新培养皿编号（可选，不填则自动生成）</label>
-      <div class="form-grid">
-        <input id="merge-target" placeholder="如 ND-101" />
-        <button id="merge-target-fill" type="button">生成新皿</button>
-      </div>
+      ${scanInput('merge-target', '如 ND-101')}
+      <button id="merge-target-fill" type="button" class="ghost" style="margin-top:6px;width:100%">生成新皿</button>
       ${helperRow(newDishHints, 'merge-target')}
     </section>
     <section class="panel card" id="merge-parent-panel">
@@ -326,6 +322,7 @@ function renderSplitTab() {
     </div>
   `;
   wireHelpers(content);
+  wireScanButtons(content);
 
   const modeSel = content.querySelector('#split-mode');
   const splitParentPanel = content.querySelector('#split-parent-panel');
@@ -515,7 +512,7 @@ function renderPlaceTab() {
     </section>
     <section class="panel card" id="place-loc-panel">
       <label>上架位置（架/层/位）</label>
-      <input id="place-location" placeholder="如 rack-A1" />
+      ${scanInput('place-location', '如 rack-A1')}
       ${helperRow(locationIds(), 'place-location')}
       <button id="place-lock" class="primary-action" style="margin-top:8px;width:100%">锁定位置</button>
     </section>
@@ -535,6 +532,7 @@ function renderPlaceTab() {
     </div>
   `;
   wireHelpers(content);
+  wireScanButtons(content);
 
   const locPanel = content.querySelector('#place-loc-panel');
   const locationInput = content.querySelector('#place-location');
@@ -652,7 +650,10 @@ function renderStatusTab() {
       <div class="card-title">状态更新</div>
       <div class="small">扫皿 + 状态选择</div>
     </section>
-    ${inputField('status-dish', '培养皿 ID', '如 D-1')}
+    <section class="panel card">
+      <label for="status-dish">培养皿 ID</label>
+      ${scanInput('status-dish', '如 D-1')}
+    </section>
     ${helperRow(dishIds().slice(0, 5), 'status-dish')}
     <section class="panel card">
       <label>状态</label>
@@ -665,6 +666,7 @@ function renderStatusTab() {
     </div>
   `;
   wireHelpers(content);
+  wireScanButtons(content);
   const dishInput = content.querySelector('#status-dish');
   const statusSel = content.querySelector('#status-select');
   content.querySelector('#status-submit').addEventListener('click', () => {
@@ -699,8 +701,14 @@ function renderTransferTab() {
       <div class="card-title">换皿 / 转移</div>
       <div class="small">扫旧皿 → 新皿</div>
     </section>
-    ${inputField('old-dish', '旧培养皿 ID', '如 D-1')}
-    ${inputField('new-dish', '新培养皿 ID', '如 ND-1')}
+    <section class="panel card">
+      <label for="old-dish">旧培养皿 ID</label>
+      ${scanInput('old-dish', '如 D-1')}
+    </section>
+    <section class="panel card">
+      <label for="new-dish">新培养皿 ID</label>
+      ${scanInput('new-dish', '如 ND-1')}
+    </section>
     ${helperRow(dishIds().slice(0, 5), 'old-dish')}
     <section class="helper-row" style="margin-top:-6px"> <button class="helper-button" data-fill="new-dish" data-value="ND-${Math.floor(Math.random()*90+10)}">生成新皿ID</button></section>
     <div class="action-row">
@@ -708,6 +716,7 @@ function renderTransferTab() {
     </div>
   `;
   wireHelpers(content);
+  wireScanButtons(content);
   const oldInput = content.querySelector('#old-dish');
   const newInput = content.querySelector('#new-dish');
   content.querySelector('#transfer-submit').addEventListener('click', () => {
