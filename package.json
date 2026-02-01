@@ -23,7 +23,9 @@
   "dependencies": {
     "better-sqlite3": "^12.6.2",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "html5-qrcode": "^2.3.8",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "supertest": "^7.0.0",
