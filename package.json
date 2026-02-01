@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "start:server": "node server/index.js",
     "test": "vitest run",
-    "migrate": "node server/migrate-json-to-sqlite.js"
+    "migrate": "node server/migrate-json-to-sqlite.js",
+    "backup": "node server/backup.js"
   },
   "keywords": [],
   "author": "",
