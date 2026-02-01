@@ -307,9 +307,10 @@ function renderSplitTab() {
     </section>
     <section class="panel card" id="merge-parent-panel">
       <label>父培养皿（多个，逐一扫码加入队列）</label>
-      <div class="form-grid">
-        <input id="merge-parent-input" placeholder="扫描/输入父皿ID，回车加入" />
-        <button id="merge-parent-add" type="button">加入队列</button>
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px">
+        <input id="merge-parent-input" placeholder="输入父皿ID，回车加入" />
+        <button id="merge-parent-add" type="button">加入</button>
+        <button id="merge-parent-scan" type="button" class="scan-btn">连扫</button>
       </div>
       <input id="merge-parent-bulk" placeholder="或直接粘贴逗号分隔列表" />
       ${helperRow(dishIds().slice(0, 5), 'merge-parent-input', 'merge-parent-add')}
@@ -432,6 +433,15 @@ function renderSplitTab() {
     renderParentQueue();
   });
 
+  const mergeParentScan = content.querySelector('#merge-parent-scan');
+  mergeParentScan.addEventListener('click', () => {
+    const seen = new Set(parentQueue);
+    startContinuousScan(
+      (text) => { addParent(text); },
+      { seen, onDuplicate: (text) => toast(`${text} 已在队列`, 'error') }
+    );
+  });
+
   submit.addEventListener('click', () => {
     withSubmit(submit, async () => {
       try {
@@ -519,9 +529,10 @@ function renderPlaceTab() {
     <section class="panel card" id="place-tray-panel" style="display:none">
       <div id="place-locked-badge" class="chip-row" style="margin-bottom:8px"></div>
       <label>盘子编号（逐一添加）</label>
-      <div class="form-grid">
-        <input id="place-tray" placeholder="扫描/输入盘子编号，回车添加" />
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px">
+        <input id="place-tray" placeholder="输入盘子编号，回车添加" />
         <button id="place-tray-add" type="button">添加</button>
+        <button id="place-tray-scan" type="button" class="scan-btn">连扫</button>
       </div>
       ${helperRow(trayIds(), 'place-tray', 'place-tray-add')}
       <div id="place-tray-queue" class="chip-row" style="margin-top:8px"></div>
@@ -605,6 +616,23 @@ function renderPlaceTab() {
       e.preventDefault();
       trayAddBtn.click();
     }
+  });
+
+  const trayScan = content.querySelector('#place-tray-scan');
+  trayScan.addEventListener('click', () => {
+    const seen = new Set(trayList);
+    startContinuousScan(
+      (text) => {
+        if (trayList.includes(text)) {
+          toast('已在队列中', 'error');
+          return;
+        }
+        trayList.push(text);
+        trayInput.value = '';
+        renderTrayQueue();
+      },
+      { seen, onDuplicate: (text) => toast(`${text} 已在队列`, 'error') }
+    );
   });
 
   submitBtn.addEventListener('click', () => {
