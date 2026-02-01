@@ -425,3 +425,23 @@ section.panel { margin-bottom: 14px; }
   }
   .qr-cell { border: 1px dashed #ccc; break-inside: avoid; }
 }
+
+/* Wider screens (tablet/desktop) */
+@media (min-width: 768px) {
+  #app {
+    max-width: 720px;
+    padding: 24px 20px 104px;
+  }
+  .tab-bar {
+    max-width: 720px;
+  }
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .card {
+    padding: 20px;
+  }
+  .app-header {
+    padding: 14px 20px;
+  }
+}
