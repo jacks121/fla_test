@@ -70,6 +70,16 @@ export function createApp({ db }) {
     res.json(rows.map(parseEvent));
   });
 
+  app.post('/api/events/undo', (req, res) => {
+    try {
+      const actorId = req.user?.id || 'emp-01';
+      const event = domain.undo({ actorId });
+      res.json(event);
+    } catch (err) {
+      res.status(400).json({ error: err.message || 'Bad request' });
+    }
+  });
+
   app.post('/api/events', (req, res) => {
     const { type, actorId, payload } = req.body || {};
     try {

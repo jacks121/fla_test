@@ -137,3 +137,37 @@ describe('GET /api/events', () => {
     expect(res.body.every((e) => e.type === 'place')).toBe(true);
   });
 });
+
+describe('POST /api/events/undo', () => {
+  it('undoes the most recent event', async () => {
+    const { db, app, token } = await setupWithToken();
+    await request(app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        type: 'split',
+        payload: { parentDishId: 'D-1', trayId: 'T-01', count: 2 },
+      });
+    const dishesAfterSplit = db.prepare('SELECT * FROM dishes').all();
+    expect(dishesAfterSplit.length).toBe(12);
+
+    const res = await request(app)
+      .post('/api/events/undo')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.type).toBe('undo');
+    expect(res.body.meta.undoneEventType).toBe('split');
+    const dishesAfterUndo = db.prepare('SELECT * FROM dishes').all();
+    expect(dishesAfterUndo.length).toBe(10);
+  });
+
+  it('rejects when no events to undo', async () => {
+    const { app } = setup();
+    const login = await request(app).post('/api/login').send({ username: 'newuser', password: 'pass' });
+    const res = await request(app)
+      .post('/api/events/undo')
+      .set('Authorization', `Bearer ${login.body.token}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('没有可撤销的操作');
+  });
+});

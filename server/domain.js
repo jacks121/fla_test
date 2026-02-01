@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { parseEvent } from './db.js';
 
 function ts() {
   return new Date().toISOString();
@@ -19,6 +20,7 @@ export function createDomain(db) {
     updatePlantStatus: db.prepare('UPDATE plants SET status = ? WHERE id = ?'),
     updatePlantDishId: db.prepare('UPDATE plants SET dishId = ? WHERE id = ?'),
     deleteDish: db.prepare('DELETE FROM dishes WHERE id = ?'),
+    deletePlant: db.prepare('DELETE FROM plants WHERE id = ?'),
     maxPlantNum: db.prepare(
       "SELECT MAX(CAST(SUBSTR(id, 3) AS INTEGER)) as maxNum FROM plants WHERE id LIKE 'P-%'"
     ),
@@ -109,11 +111,12 @@ export function createDomain(db) {
     if (!dish) throw new Error('培养皿不存在');
     const plant = stmts.findPlantById.get(dish.plantId);
     if (!plant) throw new Error('花苗不存在');
+    const oldStatus = plant.status;
     stmts.updatePlantStatus.run(status, plant.id);
     return createEvent({
       type: 'status', actorId,
       inputIds: [plant.id], outputIds: [],
-      meta: { status },
+      meta: { status, oldStatus },
     });
   });
 
@@ -156,5 +159,59 @@ export function createDomain(db) {
     });
   });
 
-  return { create, split, merge, place, updateStatus, transfer };
+  const undo = db.transaction(({ actorId }) => {
+    if (!actorId) throw new Error('缺少操作人');
+
+    const lastRow = db.prepare(
+      'SELECT * FROM events WHERE actorId = ? ORDER BY rowid DESC LIMIT 1'
+    ).get(actorId);
+    if (!lastRow) throw new Error('没有可撤销的操作');
+
+    const last = parseEvent(lastRow);
+    if (last.type === 'undo') throw new Error('已撤销最近操作，不能连续撤销');
+
+    const elapsed = Date.now() - new Date(last.ts).getTime();
+    if (elapsed > 5 * 60 * 1000) throw new Error('操作已超过 5 分钟，无法撤销');
+
+    switch (last.type) {
+      case 'create':
+      case 'split':
+      case 'merge':
+        for (const plantId of last.outputIds) {
+          const plant = stmts.findPlantById.get(plantId);
+          if (plant) {
+            if (plant.dishId) stmts.deleteDish.run(plant.dishId);
+            stmts.deletePlant.run(plantId);
+          }
+        }
+        break;
+      case 'status':
+        if (last.meta.oldStatus && last.inputIds.length > 0) {
+          stmts.updatePlantStatus.run(last.meta.oldStatus, last.inputIds[0]);
+        }
+        break;
+      case 'transfer': {
+        const { fromDishId, toDishId } = last.meta;
+        const plantId = last.inputIds[0];
+        if (plantId && fromDishId && toDishId) {
+          stmts.deleteDish.run(toDishId);
+          stmts.insertDish.run(fromDishId, plantId);
+          stmts.updatePlantDishId.run(fromDishId, plantId);
+        }
+        break;
+      }
+      case 'place':
+        break;
+      default:
+        throw new Error(`不支持撤销 ${last.type} 类型`);
+    }
+
+    return createEvent({
+      type: 'undo', actorId,
+      inputIds: [], outputIds: [],
+      meta: { undoneEventId: last.id, undoneEventType: last.type },
+    });
+  });
+
+  return { create, split, merge, place, updateStatus, transfer, undo };
 }
