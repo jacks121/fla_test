@@ -200,9 +200,17 @@ button:disabled {
 section.panel { margin-bottom: 14px; }
 
 .action-row {
-  display: flex;
-  justify-content: stretch;
-  margin-top: 8px;
+  position: fixed;
+  bottom: 52px;
+  left: 0;
+  right: 0;
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 10px 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid var(--border);
+  z-index: 100;
 }
 
 .primary-action {
@@ -434,6 +442,9 @@ section.panel { margin-bottom: 14px; }
     padding: 24px 20px 104px;
   }
   .tab-bar {
+    max-width: 720px;
+  }
+  .action-row {
     max-width: 720px;
   }
   .form-grid {
