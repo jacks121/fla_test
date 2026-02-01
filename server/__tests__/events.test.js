@@ -99,6 +99,24 @@ describe('POST /api/events', () => {
     const dish = db.prepare('SELECT * FROM dishes WHERE id = ?').get('D-X1');
     expect(dish).toBeTruthy();
   });
+
+  it('records create event', async () => {
+    const { db, app, token } = await setupWithToken();
+    const res = await request(app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        type: 'create',
+        actorId: 'emp-01',
+        payload: { type: '品种A', stage: '萌发', count: 2, trayId: 'T-01' },
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.type).toBe('create');
+    expect(res.body.outputIds.length).toBe(2);
+    expect(res.body.meta.plantType).toBe('品种A');
+    const dishes = db.prepare('SELECT * FROM dishes').all();
+    expect(dishes.length).toBe(12);
+  });
 });
 
 describe('GET /api/events', () => {

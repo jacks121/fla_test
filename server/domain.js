@@ -134,5 +134,27 @@ export function createDomain(db) {
     });
   });
 
-  return { split, merge, place, updateStatus, transfer };
+  const create = db.transaction(({ type, stage, count, trayId, actorId = 'emp-01' }) => {
+    if (!type) throw new Error('缺少品种');
+    if (!stage) throw new Error('缺少阶段');
+    if (!count || count < 1) throw new Error('数量需大于 0');
+    if (!trayId) throw new Error('缺少盘子编号');
+
+    const outputIds = [];
+    for (let i = 0; i < count; i++) {
+      const plantId = nextPlantId();
+      const dishId = nextDishId();
+      stmts.insertPlant.run(plantId, type, stage, '正常', dishId);
+      stmts.insertDish.run(dishId, plantId);
+      outputIds.push(plantId);
+    }
+
+    return createEvent({
+      type: 'create', actorId,
+      inputIds: [], outputIds,
+      meta: { plantType: type, stage, count, trayId },
+    });
+  });
+
+  return { create, split, merge, place, updateStatus, transfer };
 }

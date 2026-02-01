@@ -76,6 +76,9 @@ export function createApp({ db }) {
       const actor = actorId || req.user?.id || 'emp-01';
       let event;
       switch (type) {
+        case 'create':
+          event = domain.create({ ...payload, actorId: actor });
+          break;
         case 'split':
           event = domain.split({ ...payload, actorId: actor });
           break;

@@ -80,6 +80,30 @@ describe('domain.transfer', () => {
   });
 });
 
+describe('domain.create', () => {
+  it('creates plants and dishes in batch', () => {
+    const { db, domain } = setup();
+    const event = domain.create({ type: '品种A', stage: '萌发', count: 3, trayId: 'T-01' });
+    expect(event.type).toBe('create');
+    expect(event.outputIds).toHaveLength(3);
+    expect(event.meta.plantType).toBe('品种A');
+    const dishes = db.prepare('SELECT * FROM dishes').all();
+    expect(dishes.length).toBe(13); // 10 seed + 3 new
+  });
+
+  it('rejects missing type', () => {
+    const { domain } = setup();
+    expect(() => domain.create({ stage: '萌发', count: 1, trayId: 'T-01' }))
+      .toThrow('缺少品种');
+  });
+
+  it('rejects count < 1', () => {
+    const { domain } = setup();
+    expect(() => domain.create({ type: '品种A', stage: '萌发', count: 0, trayId: 'T-01' }))
+      .toThrow('数量需大于 0');
+  });
+});
+
 describe('event persistence', () => {
   it('all domain operations insert events into db', () => {
     const { db, domain } = setup();
