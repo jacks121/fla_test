@@ -24,26 +24,33 @@ generateBtn.addEventListener('click', async () => {
 
   grid.innerHTML = '';
   printRow.style.display = 'none';
+  generateBtn.disabled = true;
+  generateBtn.textContent = '生成中...';
 
-  const ids = [];
-  for (let i = 0; i < count; i++) {
-    ids.push(`${prefix}${start + i}`);
+  try {
+    const ids = [];
+    for (let i = 0; i < count; i++) {
+      ids.push(`${prefix}${start + i}`);
+    }
+
+    for (const id of ids) {
+      const cell = document.createElement('div');
+      cell.className = 'qr-cell';
+      const canvas = document.createElement('canvas');
+      await QRCode.toCanvas(canvas, id, { width: 120, margin: 1 });
+      cell.appendChild(canvas);
+      const label = document.createElement('div');
+      label.className = 'qr-label';
+      label.textContent = id;
+      cell.appendChild(label);
+      grid.appendChild(cell);
+    }
+
+    printRow.style.display = 'flex';
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.textContent = '生成标签';
   }
-
-  for (const id of ids) {
-    const cell = document.createElement('div');
-    cell.className = 'qr-cell';
-    const canvas = document.createElement('canvas');
-    await QRCode.toCanvas(canvas, id, { width: 120, margin: 1 });
-    cell.appendChild(canvas);
-    const label = document.createElement('div');
-    label.className = 'qr-label';
-    label.textContent = id;
-    cell.appendChild(label);
-    grid.appendChild(cell);
-  }
-
-  printRow.style.display = 'flex';
 });
 
 printBtn.addEventListener('click', () => {
