@@ -3,9 +3,14 @@ import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
 import { createDb } from '../db.js';
+import { hashPassword } from '../password.js';
+import { randomUUID } from 'node:crypto';
 
 function setup() {
   const db = createDb({ memory: true });
+  db.prepare('INSERT INTO users (id, username, passwordHash, role) VALUES (?, ?, ?, ?)').run(
+    randomUUID(), 'demo', hashPassword('demo'), 'operator'
+  );
   const app = createApp({ db });
   const loginRes = request(app).post('/api/login').send({
     username: 'demo',
@@ -162,7 +167,10 @@ describe('POST /api/events/undo', () => {
   });
 
   it('rejects when no events to undo', async () => {
-    const { app } = setup();
+    const { app, db } = setup();
+    db.prepare('INSERT INTO users (id, username, passwordHash, role) VALUES (?, ?, ?, ?)').run(
+      randomUUID(), 'newuser', hashPassword('pass'), 'operator'
+    );
     const login = await request(app).post('/api/login').send({ username: 'newuser', password: 'pass' });
     const res = await request(app)
       .post('/api/events/undo')

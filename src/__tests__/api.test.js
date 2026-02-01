@@ -3,12 +3,17 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDb } from '../../server/db.js';
 import { createApp } from '../../server/app.js';
 import { createApi } from '../lib/api.js';
+import { hashPassword } from '../../server/password.js';
+import { randomUUID } from 'node:crypto';
 
 let server;
 let baseUrl;
 
 beforeAll(() => {
   const db = createDb({ memory: true });
+  db.prepare('INSERT INTO users (id, username, passwordHash, role) VALUES (?, ?, ?, ?)').run(
+    randomUUID(), 'demo', hashPassword('demo'), 'operator'
+  );
   const app = createApp({ db });
   server = app.listen(0);
   const { port } = server.address();

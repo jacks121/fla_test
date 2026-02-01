@@ -29,6 +29,13 @@ export function createApp({ db }) {
 
   app.use(auth.authenticate);
 
+  app.post('/api/logout', (req, res) => {
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+    auth.logout(token);
+    res.json({ ok: true });
+  });
+
   app.get('/api/meta', (_req, res) => {
     const locations = db.prepare('SELECT * FROM locations').all();
     const trays = db.prepare('SELECT * FROM trays').all();
@@ -72,7 +79,7 @@ export function createApp({ db }) {
 
   app.post('/api/events/undo', (req, res) => {
     try {
-      const actorId = req.user?.id || 'emp-01';
+      const actorId = req.user.id;
       const event = domain.undo({ actorId });
       res.json(event);
     } catch (err) {
@@ -83,7 +90,7 @@ export function createApp({ db }) {
   app.post('/api/events', (req, res) => {
     const { type, actorId, payload } = req.body || {};
     try {
-      const actor = actorId || req.user?.id || 'emp-01';
+      const actor = req.user.id;
       let event;
       switch (type) {
         case 'create':
