@@ -359,3 +359,43 @@ section.panel { margin-bottom: 14px; }
   white-space: nowrap;
 }
 .scan-btn:hover { background: var(--primary-soft); }
+
+/* QR label grid */
+.qr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.qr-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.qr-cell canvas { width: 120px; height: 120px; }
+
+.qr-label {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Print styles */
+@media print {
+  body { background: #fff !important; }
+  .app-header, #admin-content > .card, .action-row, select, input, label, .small { display: none !important; }
+  .qr-grid {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 0;
+  }
+  .qr-cell { border: 1px dashed #ccc; break-inside: avoid; }
+}
