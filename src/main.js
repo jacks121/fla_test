@@ -824,7 +824,12 @@ async function bootstrap() {
   const user = authUser();
   if (userPill && user?.name) userPill.textContent = user.name;
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        await api.logout(authToken());
+      } catch {
+        // ignore errors — clear locally regardless
+      }
       clearAuth();
       window.location.href = './login.html';
     });

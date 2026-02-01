@@ -8,9 +8,6 @@ import { randomUUID } from 'node:crypto';
 
 function setup() {
   const db = createDb({ memory: true });
-  db.prepare('INSERT INTO users (id, username, passwordHash, role) VALUES (?, ?, ?, ?)').run(
-    randomUUID(), 'demo', hashPassword('demo'), 'operator'
-  );
   const app = createApp({ db });
   const loginRes = request(app).post('/api/login').send({
     username: 'demo',

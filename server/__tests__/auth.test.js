@@ -2,17 +2,9 @@ import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
 import { createDb } from '../db.js';
-import { hashPassword } from '../password.js';
-import { randomUUID } from 'node:crypto';
 
 function setup() {
   const db = createDb({ memory: true });
-  db.prepare('INSERT INTO users (id, username, passwordHash, role) VALUES (?, ?, ?, ?)').run(
-    randomUUID(), 'demo', hashPassword('demo123'), 'operator'
-  );
-  db.prepare('INSERT INTO users (id, username, passwordHash, role) VALUES (?, ?, ?, ?)').run(
-    randomUUID(), 'admin', hashPassword('admin123'), 'admin'
-  );
   const app = createApp({ db });
   return { app, db };
 }
@@ -44,7 +36,7 @@ describe('POST /api/login', () => {
 
   it('returns token and user for valid credentials', async () => {
     const { app } = setup();
-    const res = await loginAs(app, 'demo', 'demo123');
+    const res = await loginAs(app, 'demo', 'demo');
     expect(res.status).toBe(200);
     expect(res.body.token).toBeTruthy();
     expect(res.body.user.name).toBe('demo');
@@ -53,7 +45,7 @@ describe('POST /api/login', () => {
 
   it('persists session with expiry in database', async () => {
     const { app, db } = setup();
-    const res = await loginAs(app, 'demo', 'demo123');
+    const res = await loginAs(app, 'demo', 'demo');
     const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(res.body.token);
     expect(session).toBeTruthy();
     expect(session.expiresAt).toBeTruthy();
@@ -63,7 +55,7 @@ describe('POST /api/login', () => {
 describe('POST /api/logout', () => {
   it('deletes the session', async () => {
     const { app, db } = setup();
-    const login = await loginAs(app, 'demo', 'demo123');
+    const login = await loginAs(app, 'demo', 'demo');
     const token = login.body.token;
 
     const res = await request(app).post('/api/logout').set('Authorization', `Bearer ${token}`);
@@ -77,7 +69,7 @@ describe('POST /api/logout', () => {
 describe('Session expiry', () => {
   it('rejects expired session', async () => {
     const { app, db } = setup();
-    const login = await loginAs(app, 'demo', 'demo123');
+    const login = await loginAs(app, 'demo', 'demo');
     const token = login.body.token;
 
     db.prepare('UPDATE sessions SET expiresAt = ?').run('2020-01-01T00:00:00.000Z');
@@ -96,7 +88,7 @@ describe('Auth guard', () => {
 
   it('allows authenticated requests', async () => {
     const { app } = setup();
-    const login = await loginAs(app, 'admin', 'admin123');
+    const login = await loginAs(app, 'admin', 'admin');
     const res = await request(app).get('/api/meta').set('Authorization', `Bearer ${login.body.token}`);
     expect(res.status).toBe(200);
   });
@@ -105,7 +97,7 @@ describe('Auth guard', () => {
 describe('Admin role guard', () => {
   it('allows admin to access admin routes', async () => {
     const { app } = setup();
-    const login = await loginAs(app, 'admin', 'admin123');
+    const login = await loginAs(app, 'admin', 'admin');
     const res = await request(app).get('/api/admin/users').set('Authorization', `Bearer ${login.body.token}`);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -114,14 +106,14 @@ describe('Admin role guard', () => {
 
   it('rejects operator from admin routes', async () => {
     const { app } = setup();
-    const login = await loginAs(app, 'demo', 'demo123');
+    const login = await loginAs(app, 'demo', 'demo');
     const res = await request(app).get('/api/admin/users').set('Authorization', `Bearer ${login.body.token}`);
     expect(res.status).toBe(403);
   });
 
   it('user list does not expose password hashes', async () => {
     const { app } = setup();
-    const login = await loginAs(app, 'admin', 'admin123');
+    const login = await loginAs(app, 'admin', 'admin');
     const res = await request(app).get('/api/admin/users').set('Authorization', `Bearer ${login.body.token}`);
     expect(res.body[0].passwordHash).toBeUndefined();
   });
@@ -133,7 +125,7 @@ describe('Login rate limiting', () => {
     for (let i = 0; i < 5; i++) {
       await loginAs(app, 'demo', 'wrongpass');
     }
-    const res = await loginAs(app, 'demo', 'demo123');
+    const res = await loginAs(app, 'demo', 'demo');
     expect(res.status).toBe(429);
     expect(res.body.error).toMatch(/过多/);
   });

@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { seedLocations, seedTrays, seedPlants, seedDishes } from './seed.js';
+import { hashPassword } from './password.js';
 
 const schema = `
   CREATE TABLE IF NOT EXISTS plants (
@@ -74,6 +75,11 @@ export function createDb({ file = 'server/data.sqlite', memory = false } = {}) {
       for (const t of seedTrays) insTray.run(t.id, t.label);
       for (const p of seedPlants) insPlant.run(p.id, p.type, p.stage, p.status, p.dishId);
       for (const d of seedDishes) insDish.run(d.id, d.plantId);
+      const insUser = db.prepare(
+        'INSERT INTO users (id, username, passwordHash, role) VALUES (?, ?, ?, ?)'
+      );
+      insUser.run('admin-001', 'admin', hashPassword('admin'), 'admin');
+      insUser.run('user-001', 'demo', hashPassword('demo'), 'operator');
     });
     seedAll();
   }

@@ -62,5 +62,12 @@ export function createApi(baseUrl = '', fetchImpl = fetch) {
         body: JSON.stringify({}),
       }, token);
     },
+    logout(token) {
+      return request('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      }, token);
+    },
   };
 }

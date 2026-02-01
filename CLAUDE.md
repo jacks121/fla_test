@@ -15,6 +15,7 @@ FLA (花苗流程 / Flower Seedling Automation) is a POC for tracking flower see
 - `npm run build` — Production build via Vite
 - `npm run migrate` — Migrate data.json to SQLite (one-time)
 - `npm run backup` — Backup SQLite database to backups/ directory
+- `npm run add-user -- <username> <password> [role]` — Add a user (role: operator|admin)
 
 Both dev servers must run simultaneously for local development. The frontend defaults to API at `protocol//hostname:8787` (overridable via `?api=` query param).
 
@@ -34,7 +35,9 @@ Both dev servers must run simultaneously for local development. The frontend def
 - Express + SQLite (better-sqlite3, WAL mode). Data stored in `server/data.sqlite`.
 - `server/app.js` — Route definitions. Single entry point for events: `POST /api/events` with `type` field dispatching to domain functions. GET routes query SQLite directly.
 - `server/domain.js` — Server-side domain logic (`createDomain(db)`). Uses SQL prepared statements. Split/merge/updateStatus/transfer wrapped in SQLite transactions.
-- `server/auth.js` — SQLite-backed session auth (`createAuth(db)`). Sessions persisted in `sessions` table. `POST /api/login` accepts any username/password (POC), returns a UUID token.
+- `server/auth.js` — SQLite-backed session auth (`createAuth(db)`). Verifies passwords against `users` table using scrypt hashing. Sessions include role and 7-day expiry. Login rate-limited to 5 attempts/minute/IP.
+- `server/password.js` — Password hashing (`hashPassword`, `verifyPassword`) using Node crypto.scryptSync with random salt.
+- `server/add-user.js` — CLI script to add users: `node server/add-user.js <username> <password> [role]`.
 - `server/db.js` — SQLite setup via better-sqlite3. Schema: plants, dishes, events, locations, trays, sessions. `createDb({ memory })` is synchronous. `parseEvent()` deserializes JSON columns.
 - `server/seed.js` — Seed data (locations, trays, plants, dishes, meta).
 - `server/migrate-json-to-sqlite.js` — One-time migration from data.json to SQLite.
@@ -51,8 +54,11 @@ Both dev servers must run simultaneously for local development. The frontend def
 ### Auth flow
 
 1. `login.html` posts to `/api/login`, stores token in `localStorage` (`fla_token`, `fla_user`).
-2. `index.html` (main app) reads token from localStorage, redirects to login if missing.
-3. All API calls pass token as `Bearer` header. 401 responses trigger redirect to login.
+2. Login requires a real user account. Default users: `admin`/`admin` (admin role), `demo`/`demo` (operator role). Add users via `npm run add-user`.
+3. `index.html` (main app) reads token from localStorage, redirects to login if missing.
+4. All API calls pass token as `Bearer` header. 401 responses trigger redirect to login.
+5. Sessions expire after 7 days. Logout calls `POST /api/logout` to delete server session.
+6. Admin routes (`/api/admin/*`) require `admin` role; operators get 403.
 
 ## Testing
 
