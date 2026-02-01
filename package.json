@@ -15,7 +15,8 @@
     "start:server": "node server/index.js",
     "test": "vitest run",
     "migrate": "node server/migrate-json-to-sqlite.js",
-    "backup": "node server/backup.js"
+    "backup": "node server/backup.js",
+    "add-user": "node server/add-user.js"
   },
   "keywords": [],
   "author": "",
