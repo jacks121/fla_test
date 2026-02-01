@@ -42,5 +42,12 @@ export function createAuth(db) {
     next();
   }
 
-  return { login, logout, authenticate };
+  function requireAdmin(req, res, next) {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ error: '需要管理员权限' });
+    }
+    next();
+  }
+
+  return { login, logout, authenticate, requireAdmin };
 }

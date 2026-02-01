@@ -101,3 +101,28 @@ describe('Auth guard', () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe('Admin role guard', () => {
+  it('allows admin to access admin routes', async () => {
+    const { app } = setup();
+    const login = await loginAs(app, 'admin', 'admin123');
+    const res = await request(app).get('/api/admin/users').set('Authorization', `Bearer ${login.body.token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(2);
+  });
+
+  it('rejects operator from admin routes', async () => {
+    const { app } = setup();
+    const login = await loginAs(app, 'demo', 'demo123');
+    const res = await request(app).get('/api/admin/users').set('Authorization', `Bearer ${login.body.token}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('user list does not expose password hashes', async () => {
+    const { app } = setup();
+    const login = await loginAs(app, 'admin', 'admin123');
+    const res = await request(app).get('/api/admin/users').set('Authorization', `Bearer ${login.body.token}`);
+    expect(res.body[0].passwordHash).toBeUndefined();
+  });
+});

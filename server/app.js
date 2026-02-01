@@ -36,6 +36,11 @@ export function createApp({ db }) {
     res.json({ ok: true });
   });
 
+  app.get('/api/admin/users', auth.requireAdmin, (_req, res) => {
+    const users = db.prepare('SELECT id, username, role FROM users').all();
+    res.json(users);
+  });
+
   app.get('/api/meta', (_req, res) => {
     const locations = db.prepare('SELECT * FROM locations').all();
     const trays = db.prepare('SELECT * FROM trays').all();
