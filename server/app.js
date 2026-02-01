@@ -17,7 +17,27 @@ export function createApp({ db }) {
     res.json({ ok: true });
   });
 
+  // Simple in-memory login rate limiter
+  const loginAttempts = new Map();
+  const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+  const RATE_LIMIT_MAX = 5;
+
+  function checkLoginRate(ip) {
+    const now = Date.now();
+    const record = loginAttempts.get(ip);
+    if (!record || now - record.start > RATE_LIMIT_WINDOW) {
+      loginAttempts.set(ip, { start: now, count: 1 });
+      return true;
+    }
+    record.count++;
+    return record.count <= RATE_LIMIT_MAX;
+  }
+
   app.post('/api/login', (req, res) => {
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    if (!checkLoginRate(ip)) {
+      return res.status(429).json({ error: '登录尝试过多，请稍后再试' });
+    }
     const { username, password } = req.body || {};
     try {
       const session = auth.login({ username, password });

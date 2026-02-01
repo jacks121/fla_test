@@ -126,3 +126,15 @@ describe('Admin role guard', () => {
     expect(res.body[0].passwordHash).toBeUndefined();
   });
 });
+
+describe('Login rate limiting', () => {
+  it('blocks after 5 failed attempts', async () => {
+    const { app } = setup();
+    for (let i = 0; i < 5; i++) {
+      await loginAs(app, 'demo', 'wrongpass');
+    }
+    const res = await loginAs(app, 'demo', 'demo123');
+    expect(res.status).toBe(429);
+    expect(res.body.error).toMatch(/过多/);
+  });
+});
