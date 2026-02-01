@@ -33,6 +33,7 @@
         <label for="login-pass" style="margin-top:10px;">口令</label>
         <input id="login-pass" type="password" autocomplete="current-password" placeholder="随意输入" required />
 
+        <div id="login-error" class="auth-error" aria-live="polite"></div>
         <div class="auth-actions">
           <button type="submit" class="primary-action">模拟登录</button>
         </div>
@@ -40,24 +41,54 @@
     </section>
 
     <div class="auth-footer">
-      <span>无账户？</span>
-      <a class="link" href="./index.html">直接进入演示</a>
+      <span>必须登录后进入演示</span>
     </div>
   </div>
 
   <script>
     const form = document.getElementById('login-form');
+    const errorEl = document.getElementById('login-error');
+    const storageToken = 'fla_token';
+    const storageUser = 'fla_user';
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const user = document.getElementById('login-user').value.trim();
       const pass = document.getElementById('login-pass').value.trim();
-      if (!user || !pass) return;
       const btn = form.querySelector('button');
+      if (!user || !pass) {
+        errorEl.textContent = '请输入账号与口令';
+        return;
+      }
       btn.disabled = true;
       btn.textContent = '登录中...';
-      setTimeout(() => {
-        window.location.href = './index.html';
-      }, 500);
+      const params = new URLSearchParams(window.location.search);
+      const apiBase = params.get('api') || `${window.location.protocol}//${window.location.hostname}:8787`;
+      fetch(`${apiBase}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass }),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || '登录失败');
+          }
+          return res.json();
+        })
+        .then((data) => {
+          localStorage.setItem(storageToken, data.token);
+          localStorage.setItem(storageUser, JSON.stringify(data.user || { name: user }));
+          const nextUrl = new URL('./index.html', window.location.href);
+          if (params.get('api')) nextUrl.searchParams.set('api', params.get('api'));
+          window.location.href = nextUrl.toString();
+        })
+        .catch((err) => {
+          errorEl.textContent = err.message || '登录失败';
+        })
+        .finally(() => {
+          btn.disabled = false;
+          btn.textContent = '模拟登录';
+        });
     });
   </script>
 </body>

@@ -46,3 +46,25 @@
 - API surface based on Required APIs in docs/plans/2026-01-31-flower-seedling-automation-poc-impl.md.
 - Event-driven writes: split/merge/place/status/transfer.
 - Storage: meta (locations/trays/status enum), plants, dishes, events.
+
+## Frontend API Wiring Notes
+
+- Boot load uses /api/meta + /api/dishes + /api/events.
+- Each submit posts to /api/events then refreshes dishes/events.
+- API base defaults to protocol//hostname:8787 with ?api= override.
+
+## Login Feature Notes
+
+- Auth uses session token returned by /api/login; all other /api routes require Bearer token.
+- Token stored in localStorage (fla_token) with user payload (fla_user).
+- Client redirects to login on missing token or 401 response.
+
+## Personal History UI
+
+- Added a dedicated card to show current user's recent 20 events.
+- History is derived by filtering events by actorId.
+
+## Documentation Refresh
+
+- Updated docs in docs/plans to reflect current POC (backend + login + history).
+- Added current API/auth details and limitations.

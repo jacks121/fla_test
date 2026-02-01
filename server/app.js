@@ -6,12 +6,17 @@ import { createAuth } from './auth.js';
 import { parseEvent } from './db.js';
 import { seedMeta } from './seed.js';
 
-export function createApp({ db }) {
+export function createApp({ db, distDir }) {
   const app = express();
   const domain = createDomain(db);
   const auth = createAuth(db);
   app.use(cors());
   app.use(express.json());
+
+  // Serve static files BEFORE auth middleware
+  if (distDir) {
+    app.use(express.static(distDir));
+  }
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });

@@ -1,76 +1,59 @@
-# Flower Seedling Server Implementation Plan
+# Flower Seedling Server Implementation (Current State)
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+更新日期：2026-02-01
 
-**Goal:** Add a minimal backend (Express + lowdb) that serves meta data and records events for the current POC flows.
+## 目标
+提供一个最小可用后端，支持 POC 所有流程事件与登录鉴权。
 
-**Architecture:** Express app with a lowdb JSON store. A small domain layer processes events (split/merge/place/status/transfer). API handlers validate input, call domain functions, write to db, and return results. Tests use vitest + supertest with in-memory db.
+## 当前实现概览
+- 框架：Express（ESM）
+- 数据：lowdb JSON（默认 `server/data.json`）
+- 鉴权：`/api/login` 返回 token，其他接口需 Bearer token
+- 事件类型：split / merge / place / status / transfer
+- 测试：Vitest + Supertest
 
-**Tech Stack:** Node.js (ESM), Express, lowdb, Vitest, Supertest.
+## 文件结构
+- `server/index.js`：启动入口
+- `server/app.js`：路由与鉴权
+- `server/auth.js`：内存 session
+- `server/db.js`：lowdb 初始化
+- `server/seed.js`：种子数据
+- `server/domain.js`：事件逻辑
 
----
+## API 列表
 
-### Task 1: Add server dependencies and scripts
+### Auth
+- `POST /api/login`
+  - body: `{ username, password }`
+  - 返回：`{ token, user }`
 
-**Files:**
-- Modify: `package.json`
+### Health
+- `GET /api/health`（无需鉴权）
 
-**Step 1: Add dependencies**
-- `express`, `lowdb`, `supertest` (dev), `cors` (optional for local dev)
-
-**Step 2: Add scripts**
-- `dev:server`: `node --watch server/index.js`
-- `start:server`: `node server/index.js`
-
-### Task 2: Define database and seed data
-
-**Files:**
-- Create: `server/db.js`, `server/seed.js`
-
-**Step 1: Write failing test**
-- `server/__tests__/meta.test.js` verifies `GET /api/meta` returns locations/trays.
-
-**Step 2: Implement DB**
-- lowdb JSON with defaults: `meta`, `plants`, `dishes`, `events`.
-- seed locations/trays and 10 sample plants/dishes.
-
-### Task 3: Implement API app
-
-**Files:**
-- Create: `server/app.js`, `server/index.js`
-
-**Step 1: Write failing test**
-- `server/__tests__/events.test.js` for `POST /api/events` split/merge/place.
-
-**Step 2: Implement minimal endpoints**
+### Meta / Entities
 - `GET /api/meta`
+- `GET /api/plants?query=`
+- `GET /api/dishes?query=`
+
+### Events
+- `GET /api/events?type=&actorId=&from=&to=`
 - `POST /api/events`
-- `GET /api/events`
-- `GET /api/plants`
-- `GET /api/dishes`
-- `GET /api/health`
+  - body: `{ type, actorId, payload }`
+  - payload:
+    - split: `{ parentDishId, trayId, count }`
+    - merge: `{ parentDishIds[], trayId, targetDishId? }`
+    - place: `{ trayId, locationId }`
+    - status: `{ dishId, status }`
+    - transfer: `{ fromDishId, toDishId }`
 
-### Task 4: Domain logic for events
+## 启动方式
 
-**Files:**
-- Create: `server/domain.js`
+```bash
+npm run dev:server
+```
 
-**Step 1: Write failing tests**
-- split creates N plants/dishes
-- merge creates 1 plant/dish
-- place records tray+location
-- status updates plant
-- transfer moves dish
+## 已知限制
+- session 存内存，服务重启即失效
+- 无角色权限/细粒度控制
+- 仅 POC 级校验
 
-**Step 2: Implement domain helpers**
-- id generation, validation, db updates
-
-### Task 5: Wire tests + run
-
-**Step 1:** `npm run test`
-**Step 2:** fix failures until green
-
----
-
-Plan complete and saved to `docs/plans/2026-01-31-flower-seedling-server-impl.md`.
-Per your instruction, I will proceed with implementation without further questions.

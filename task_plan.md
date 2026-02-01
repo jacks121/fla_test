@@ -1,8 +1,8 @@
-# Task Plan: Server-Side Backend (POC)
+# Task Plan: Documentation Refresh
 
 ## Goal
 
-Implement a minimal backend API for the flower seedling workflow using a lightweight JSON database.
+Update all project documents to reflect the current POC implementation (frontend + backend + login + history).
 
 ## Phases
 
@@ -13,19 +13,18 @@ Implement a minimal backend API for the flower seedling workflow using a lightwe
 
 ## Key Questions
 
-1. What is the minimal set of endpoints to support the current POC UI?
-2. What persistence and validation are required for a stable demo?
+1. What has changed since the original POC plan (auth, backend, history)?
+2. Which docs need to reflect current endpoints and UI flows?
 
 ## Decisions Made
 
-- Use Node.js + Express + lowdb (JSON) for a simple server.
-- Implement the required API list already documented in the POC plan.
-- TDD for endpoint behavior with supertest + vitest.
+- Rewrite each plan doc to match actual features, endpoints, and limitations.
+- Keep Chinese language and current date references consistent.
 
 ## Errors Encountered
 
-- lowdb Memory adapter not available; switched to temp JSON file for tests.
+- (none)
 
 ## Status
 
-**Currently in Phase 4** - Backend implemented and tests passing.
+**Currently in Phase 4** - Documentation updated and aligned with current implementation.
