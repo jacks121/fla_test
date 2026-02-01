@@ -57,6 +57,7 @@ export function createDomain(db) {
     const parentPlant = stmts.findPlantById.get(parentDish.plantId);
     if (!parentPlant) throw new Error('父花苗不存在');
     if (!count || count < 1) throw new Error('数量需大于 0');
+    if (count > 50) throw new Error('数量不能超过 50');
 
     const outputIds = [];
     for (let i = 0; i < count; i++) {
@@ -77,6 +78,8 @@ export function createDomain(db) {
   const merge = db.transaction(({ parentDishIds, trayId, targetDishId, actorId = 'emp-01' }) => {
     if (!Array.isArray(parentDishIds) || parentDishIds.length === 0)
       throw new Error('父培养皿不能为空');
+    if (targetDishId && parentDishIds.includes(targetDishId))
+      throw new Error('目标培养皿不能与父培养皿相同');
     const parentPlantIds = parentDishIds.map((id) => {
       const dish = stmts.findDishById.get(id);
       if (!dish) throw new Error('父培养皿不存在');
@@ -141,6 +144,7 @@ export function createDomain(db) {
     if (!type) throw new Error('缺少品种');
     if (!stage) throw new Error('缺少阶段');
     if (!count || count < 1) throw new Error('数量需大于 0');
+    if (count > 50) throw new Error('数量不能超过 50');
     if (!trayId) throw new Error('缺少盘子编号');
 
     const outputIds = [];

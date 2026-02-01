@@ -177,3 +177,24 @@ describe('event persistence', () => {
     expect(Array.isArray(parsed.inputIds)).toBe(true);
   });
 });
+
+describe('validation', () => {
+  it('rejects split count > 50', () => {
+    const { domain } = setup();
+    expect(() => domain.split({ parentDishId: 'D-1', trayId: 'T-01', count: 51 }))
+      .toThrow('数量不能超过 50');
+  });
+
+  it('rejects merge when targetDishId is in parentDishIds', () => {
+    const { domain } = setup();
+    expect(() =>
+      domain.merge({ parentDishIds: ['D-1', 'D-2'], trayId: 'T-02', targetDishId: 'D-1' })
+    ).toThrow('目标培养皿不能与父培养皿相同');
+  });
+
+  it('rejects create count > 50', () => {
+    const { domain } = setup();
+    expect(() => domain.create({ type: '品种A', stage: '萌发', count: 51, trayId: 'T-01' }))
+      .toThrow('数量不能超过 50');
+  });
+});

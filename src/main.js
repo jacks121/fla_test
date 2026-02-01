@@ -649,6 +649,7 @@ function renderStatusTab() {
       try {
         const dishId = dishInput.value.trim();
         if (!dishId) throw new Error('请填写培养皿 ID');
+        if (!dishIds().includes(dishId)) throw new Error(`培养皿不存在: ${dishId}`);
         await api.postEvent(
           {
           type: 'status',
@@ -692,6 +693,8 @@ function renderTransferTab() {
         const fromDishId = oldInput.value.trim();
         const toDishId = newInput.value.trim();
         if (!fromDishId || !toDishId) throw new Error('请填写旧皿与新皿');
+        if (!dishIds().includes(fromDishId)) throw new Error(`旧培养皿不存在: ${fromDishId}`);
+        if (dishIds().includes(toDishId)) throw new Error(`新培养皿已被占用: ${toDishId}`);
         await api.postEvent(
           {
           type: 'transfer',
