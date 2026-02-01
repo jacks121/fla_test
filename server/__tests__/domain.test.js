@@ -198,3 +198,71 @@ describe('validation', () => {
       .toThrow('数量不能超过 50');
   });
 });
+
+describe('domain.create validation', () => {
+  it('rejects missing stage', () => {
+    const { domain } = setup();
+    expect(() => domain.create({ type: '品种A', count: 1, trayId: 'T-01' }))
+      .toThrow('缺少阶段');
+  });
+
+  it('rejects missing trayId', () => {
+    const { domain } = setup();
+    expect(() => domain.create({ type: '品种A', stage: '萌发', count: 1 }))
+      .toThrow('缺少盘子编号');
+  });
+});
+
+describe('domain.place validation', () => {
+  it('rejects missing trayId', () => {
+    const { domain } = setup();
+    expect(() => domain.place({ locationId: 'rack-A1' })).toThrow('盘子编号不能为空');
+  });
+
+  it('rejects missing locationId', () => {
+    const { domain } = setup();
+    expect(() => domain.place({ trayId: 'T-01' })).toThrow('上架位置不能为空');
+  });
+});
+
+describe('domain.transfer validation', () => {
+  it('rejects missing fromDishId', () => {
+    const { domain } = setup();
+    expect(() => domain.transfer({ toDishId: 'D-X1' })).toThrow('缺少培养皿');
+  });
+
+  it('rejects non-existent source dish', () => {
+    const { domain } = setup();
+    expect(() => domain.transfer({ fromDishId: 'NOPE', toDishId: 'D-X1' }))
+      .toThrow('原培养皿不存在');
+  });
+});
+
+describe('domain.merge validation', () => {
+  it('rejects empty parentDishIds array', () => {
+    const { domain } = setup();
+    expect(() => domain.merge({ parentDishIds: [], trayId: 'T-02' }))
+      .toThrow('父培养皿不能为空');
+  });
+
+  it('rejects non-existent parent dish', () => {
+    const { domain } = setup();
+    expect(() => domain.merge({ parentDishIds: ['NOPE'], trayId: 'T-02' }))
+      .toThrow('父培养皿不存在');
+  });
+});
+
+describe('domain.updateStatus validation', () => {
+  it('rejects non-existent dish', () => {
+    const { domain } = setup();
+    expect(() => domain.updateStatus({ dishId: 'NOPE', status: '感染' }))
+      .toThrow('培养皿不存在');
+  });
+});
+
+describe('domain.undo validation', () => {
+  it('rejects missing actorId', () => {
+    const { domain } = setup();
+    expect(() => domain.undo({})).toThrow('缺少操作人');
+  });
+});
