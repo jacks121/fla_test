@@ -89,23 +89,37 @@ function locationIds() {
   return state.meta.locations.map((l) => l.id);
 }
 
+function renderEventItem(e) {
+  const inText = e.inputIds.length ? e.inputIds.join(', ') : '-';
+  const outText = e.outputIds.length ? e.outputIds.join(', ') : '-';
+  const meta = metaText(e);
+  const detailParts = [];
+  detailParts.push(`ID: ${e.id}`);
+  detailParts.push(`操作人: ${e.actorId}`);
+  if (Object.keys(e.meta || {}).length > 0) {
+    detailParts.push(`详情: ${JSON.stringify(e.meta)}`);
+  }
+  return `<li class="event-item" data-event-id="${e.id}">
+    <div class="event-title">${labelOfType(e.type)} · ${new Date(e.ts).toLocaleTimeString()}</div>
+    <div class="event-meta">in: ${inText} | out: ${outText}</div>
+    ${meta ? `<div class="event-meta">${meta}</div>` : ''}
+    <div class="event-detail">${detailParts.join('<br>')}</div>
+  </li>`;
+}
+
+function wireEventExpand(list) {
+  list.querySelectorAll('.event-item:not(.empty)').forEach((item) => {
+    item.addEventListener('click', () => {
+      item.classList.toggle('expanded');
+    });
+  });
+}
+
 function renderEventLog() {
   const type = filterType.value;
   const events = state.events.filter((e) => type === 'all' || e.type === type);
-  eventList.innerHTML = events
-    .map(
-      (e) => {
-        const inText = e.inputIds.length ? e.inputIds.join(', ') : '-';
-        const outText = e.outputIds.length ? e.outputIds.join(', ') : '-';
-        const meta = metaText(e);
-        return `<li class="event-item">
-          <div class="event-title">${labelOfType(e.type)} · ${new Date(e.ts).toLocaleTimeString()}</div>
-          <div class="event-meta">in: ${inText} | out: ${outText}</div>
-          ${meta ? `<div class="event-meta">${meta}</div>` : ''}
-        </li>`;
-      }
-    )
-    .join('');
+  eventList.innerHTML = events.map(renderEventItem).join('');
+  wireEventExpand(eventList);
 }
 
 function renderMyHistory() {
@@ -117,18 +131,8 @@ function renderMyHistory() {
     myEventList.innerHTML = '<li class="event-item empty">暂无记录</li>';
     return;
   }
-  myEventList.innerHTML = events
-    .map((e) => {
-      const inText = e.inputIds.length ? e.inputIds.join(', ') : '-';
-      const outText = e.outputIds.length ? e.outputIds.join(', ') : '-';
-      const meta = metaText(e);
-      return `<li class="event-item">
-          <div class="event-title">${labelOfType(e.type)} · ${new Date(e.ts).toLocaleTimeString()}</div>
-          <div class="event-meta">in: ${inText} | out: ${outText}</div>
-          ${meta ? `<div class="event-meta">${meta}</div>` : ''}
-        </li>`;
-    })
-    .join('');
+  myEventList.innerHTML = events.map(renderEventItem).join('');
+  wireEventExpand(myEventList);
 }
 
 function labelOfType(t) {

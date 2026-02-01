@@ -399,6 +399,20 @@ section.panel { margin-bottom: 14px; }
   margin-bottom: 8px;
 }
 
+/* Expandable event details */
+.event-item { cursor: pointer; }
+.event-detail {
+  display: none;
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--sub);
+  word-break: break-all;
+}
+.event-item.expanded .event-detail { display: block; }
+
 /* Print styles */
 @media print {
   body { background: #fff !important; }
