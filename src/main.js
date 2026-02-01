@@ -649,11 +649,28 @@ tabs.forEach((t) =>
 );
 
 filterType.addEventListener('change', renderEventLog);
-undoBtn.addEventListener('click', () => {
-  toast('暂不支持撤销', 'error');
+undoBtn.addEventListener('click', async () => {
+  const lastEvent = state.myEvents.find((e) => e.type !== 'undo');
+  if (!lastEvent) {
+    toast('没有可撤销的操作', 'error');
+    return;
+  }
+  const label = labelOfType(lastEvent.type);
+  if (!confirm(`确定撤销最近的操作吗？\n将撤销：${label}`)) return;
+  try {
+    undoBtn.disabled = true;
+    await api.undo(authToken());
+    toast('撤销成功');
+    await refreshEventsAndDishes();
+    renderEventLog();
+    renderMyHistory();
+  } catch (err) {
+    if (handleAuthError(err)) return;
+    toast(err.message || '撤销失败', 'error');
+  } finally {
+    undoBtn.disabled = false;
+  }
 });
-
-undoBtn.disabled = true;
 
 async function bootstrap() {
   if (!authToken()) {
