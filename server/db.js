@@ -36,6 +36,12 @@ const schema = `
     userName TEXT NOT NULL,
     createdAt TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    passwordHash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'operator'
+  );
 `;
 
 export function parseEvent(row) {
