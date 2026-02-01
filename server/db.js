@@ -1,27 +1,74 @@
-import { Low } from 'lowdb';
-import { JSONFile } from 'lowdb/node';
-import { randomUUID } from 'node:crypto';
-import { seedMeta, seedPlants, seedDishes } from './seed.js';
+import Database from 'better-sqlite3';
+import { seedLocations, seedTrays, seedPlants, seedDishes } from './seed.js';
 
-const defaultData = {
-  meta: seedMeta,
-  plants: seedPlants,
-  dishes: seedDishes,
-  events: [],
-};
+const schema = `
+  CREATE TABLE IF NOT EXISTS plants (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    stage TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT '正常',
+    dishId TEXT
+  );
+  CREATE TABLE IF NOT EXISTS dishes (
+    id TEXT PRIMARY KEY,
+    plantId TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS events (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    actorId TEXT NOT NULL,
+    ts TEXT NOT NULL,
+    inputIds TEXT NOT NULL DEFAULT '[]',
+    outputIds TEXT NOT NULL DEFAULT '[]',
+    meta TEXT NOT NULL DEFAULT '{}'
+  );
+  CREATE TABLE IF NOT EXISTS locations (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS trays (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    userName TEXT NOT NULL,
+    createdAt TEXT NOT NULL
+  );
+`;
 
-export async function createDb({ file = 'server/data.json', memory = false } = {}) {
-  const dbFile = memory ? `/tmp/fla-test-${randomUUID()}.json` : file;
-  const adapter = new JSONFile(dbFile);
-  const db = new Low(adapter, structuredClone(defaultData));
-  await db.read();
-  if (!db.data) {
-    db.data = structuredClone(defaultData);
-    await db.write();
+export function parseEvent(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    inputIds: JSON.parse(row.inputIds),
+    outputIds: JSON.parse(row.outputIds),
+    meta: JSON.parse(row.meta),
+  };
+}
+
+export function createDb({ file = 'server/data.sqlite', memory = false } = {}) {
+  const db = new Database(memory ? ':memory:' : file);
+  db.pragma('journal_mode = WAL');
+  db.exec(schema);
+
+  const count = db.prepare('SELECT COUNT(*) as c FROM plants').get().c;
+  if (count === 0) {
+    const seedAll = db.transaction(() => {
+      const insLoc = db.prepare('INSERT INTO locations (id, label) VALUES (?, ?)');
+      const insTray = db.prepare('INSERT INTO trays (id, label) VALUES (?, ?)');
+      const insPlant = db.prepare(
+        'INSERT INTO plants (id, type, stage, status, dishId) VALUES (?, ?, ?, ?, ?)'
+      );
+      const insDish = db.prepare('INSERT INTO dishes (id, plantId) VALUES (?, ?)');
+      for (const l of seedLocations) insLoc.run(l.id, l.label);
+      for (const t of seedTrays) insTray.run(t.id, t.label);
+      for (const p of seedPlants) insPlant.run(p.id, p.type, p.stage, p.status, p.dishId);
+      for (const d of seedDishes) insDish.run(d.id, d.plantId);
+    });
+    seedAll();
   }
-  if (!db.data.meta) db.data.meta = structuredClone(seedMeta);
-  if (!db.data.plants) db.data.plants = structuredClone(seedPlants);
-  if (!db.data.dishes) db.data.dishes = structuredClone(seedDishes);
-  if (!db.data.events) db.data.events = [];
+
   return db;
 }
