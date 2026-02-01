@@ -43,3 +43,84 @@ describe('api client', () => {
     expect(event.outputIds.length).toBe(2);
   });
 });
+
+describe('api client error handling', () => {
+  let api;
+  let token;
+
+  beforeAll(async () => {
+    api = createApi(baseUrl);
+    const login = await api.login({ username: 'demo', password: 'demo' });
+    token = login.token;
+  });
+
+  it('throws with status 401 for expired/invalid token', async () => {
+    try {
+      await api.getMeta('invalid-token');
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect(err.status).toBe(401);
+    }
+  });
+
+  it('throws with status 400 for bad login', async () => {
+    try {
+      await api.login({ username: 'demo', password: 'wrong' });
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect(err.status).toBe(400);
+      expect(err.message).toMatch(/账号或口令错误/);
+    }
+  });
+
+  it('throws with domain error message for bad event', async () => {
+    try {
+      await api.postEvent(
+        { type: 'split', payload: { parentDishId: 'NOPE', trayId: 'T-01', count: 1 } },
+        token
+      );
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect(err.status).toBe(400);
+      expect(err.message).toBeTruthy();
+    }
+  });
+});
+
+describe('api client additional methods', () => {
+  let api;
+  let token;
+
+  beforeAll(async () => {
+    api = createApi(baseUrl);
+    const login = await api.login({ username: 'demo', password: 'demo' });
+    token = login.token;
+  });
+
+  it('getDishes returns array', async () => {
+    const dishes = await api.getDishes(undefined, token);
+    expect(Array.isArray(dishes)).toBe(true);
+    expect(dishes.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('getEvents returns array', async () => {
+    const events = await api.getEvents(undefined, token);
+    expect(Array.isArray(events)).toBe(true);
+  });
+
+  it('undo throws when no events to undo', async () => {
+    // First undo succeeds (undoes prior split event), second undo throws 400
+    await api.undo(token);
+    try {
+      await api.undo(token);
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect(err.status).toBe(400);
+    }
+  });
+
+  it('logout succeeds', async () => {
+    const result = await api.logout(token);
+    expect(result.ok).toBe(true);
+  });
+});
