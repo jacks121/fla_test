@@ -31,6 +31,7 @@ const tabs = document.querySelectorAll('.tab');
 const eventList = document.getElementById('event-list');
 const myEventList = document.getElementById('my-event-list');
 const filterType = document.getElementById('filter-type');
+const filterMyType = document.getElementById('filter-my-type');
 const undoBtn = document.getElementById('undo-btn');
 const userPill = document.getElementById('user-pill');
 const logoutBtn = document.getElementById('logout-btn');
@@ -109,7 +110,9 @@ function renderEventLog() {
 
 function renderMyHistory() {
   if (!myEventList) return;
-  const events = state.myEvents.slice(0, 20);
+  const type = filterMyType?.value || 'all';
+  const filtered = state.myEvents.filter((e) => type === 'all' || e.type === type);
+  const events = filtered.slice(0, 20);
   if (events.length === 0) {
     myEventList.innerHTML = '<li class="event-item empty">暂无记录</li>';
     return;
@@ -818,6 +821,7 @@ tabs.forEach((t) =>
 );
 
 filterType.addEventListener('change', renderEventLog);
+if (filterMyType) filterMyType.addEventListener('change', renderMyHistory);
 undoBtn.addEventListener('click', async () => {
   const lastEvent = state.myEvents.find((e) => e.type !== 'undo');
   if (!lastEvent) {
