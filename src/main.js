@@ -34,6 +34,27 @@ const filterType = document.getElementById('filter-type');
 const undoBtn = document.getElementById('undo-btn');
 const userPill = document.getElementById('user-pill');
 const logoutBtn = document.getElementById('logout-btn');
+const offlineBanner = document.getElementById('offline-banner');
+
+function setOffline(isOffline) {
+  if (offlineBanner) offlineBanner.style.display = isOffline ? 'block' : 'none';
+}
+
+window.addEventListener('online', async () => {
+  setOffline(false);
+  try {
+    await loadState();
+    switchTab(activeTab);
+    renderEventLog();
+    renderMyHistory();
+  } catch (err) {
+    if (!handleAuthError(err)) toast('重新加载失败', 'error');
+  }
+});
+
+window.addEventListener('offline', () => {
+  setOffline(true);
+});
 
 let activeTab = 'split';
 const newDishHints = ['ND-101', 'ND-102', 'ND-103', 'ND-104', 'ND-105'];
@@ -161,6 +182,10 @@ async function refreshEventsAndDishes() {
 }
 
 async function withSubmit(btn, fn) {
+  if (!navigator.onLine) {
+    toast('当前离线，无法提交', 'error');
+    return;
+  }
   const original = btn.textContent;
   btn.disabled = true;
   btn.textContent = '提交中...';
