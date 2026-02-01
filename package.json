@@ -17,7 +17,7 @@
     "migrate": "node server/migrate-json-to-sqlite.js",
     "backup": "node server/backup.js",
     "add-user": "node server/add-user.js",
-    "deploy": "npm run build && pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs"
+    "deploy": "npm run build && (pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs)"
   },
   "keywords": [],
   "author": "",
