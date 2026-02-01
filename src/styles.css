@@ -412,6 +412,7 @@ section.panel { margin-bottom: 14px; }
   word-break: break-all;
 }
 .event-item.expanded .event-detail { display: block; }
+.event-item.empty { cursor: default; }
 
 /* Print styles */
 @media print {
