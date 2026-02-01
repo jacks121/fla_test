@@ -1,7 +1,10 @@
+// server/app.js
 import express from 'express';
 import cors from 'cors';
 import { createDomain } from './domain.js';
 import { createAuth } from './auth.js';
+import { parseEvent } from './db.js';
+import { seedMeta } from './seed.js';
 
 export function createApp({ db }) {
   const app = express();
@@ -26,65 +29,71 @@ export function createApp({ db }) {
 
   app.use(auth.authenticate);
 
-  app.get('/api/meta', async (_req, res) => {
-    await db.read();
-    res.json(db.data.meta);
+  app.get('/api/meta', (_req, res) => {
+    const locations = db.prepare('SELECT * FROM locations').all();
+    const trays = db.prepare('SELECT * FROM trays').all();
+    res.json({
+      locations,
+      trays,
+      statusEnum: seedMeta.statusEnum,
+      stages: seedMeta.stages,
+      types: seedMeta.types,
+    });
   });
 
-  app.get('/api/plants', async (req, res) => {
-    await db.read();
+  app.get('/api/plants', (req, res) => {
     const q = (req.query.query || '').toString();
     const list = q
-      ? db.data.plants.filter((p) => p.id.includes(q) || p.type.includes(q))
-      : db.data.plants;
+      ? db.prepare('SELECT * FROM plants WHERE id LIKE ? OR type LIKE ?').all(`%${q}%`, `%${q}%`)
+      : db.prepare('SELECT * FROM plants').all();
     res.json(list);
   });
 
-  app.get('/api/dishes', async (req, res) => {
-    await db.read();
+  app.get('/api/dishes', (req, res) => {
     const q = (req.query.query || '').toString();
-    const list = q ? db.data.dishes.filter((d) => d.id.includes(q)) : db.data.dishes;
+    const list = q
+      ? db.prepare('SELECT * FROM dishes WHERE id LIKE ?').all(`%${q}%`)
+      : db.prepare('SELECT * FROM dishes').all();
     res.json(list);
   });
 
-  app.get('/api/events', async (req, res) => {
-    await db.read();
+  app.get('/api/events', (req, res) => {
     const { type, actorId, from, to } = req.query;
-    let events = [...db.data.events];
-    if (type) events = events.filter((e) => e.type === type);
-    if (actorId) events = events.filter((e) => e.actorId === actorId);
-    if (from) events = events.filter((e) => e.ts >= from);
-    if (to) events = events.filter((e) => e.ts <= to);
-    res.json(events);
+    let sql = 'SELECT * FROM events WHERE 1=1';
+    const params = [];
+    if (type) { sql += ' AND type = ?'; params.push(type); }
+    if (actorId) { sql += ' AND actorId = ?'; params.push(actorId); }
+    if (from) { sql += ' AND ts >= ?'; params.push(from); }
+    if (to) { sql += ' AND ts <= ?'; params.push(to); }
+    sql += ' ORDER BY ts DESC';
+    const rows = db.prepare(sql).all(...params);
+    res.json(rows.map(parseEvent));
   });
 
-  app.post('/api/events', async (req, res) => {
+  app.post('/api/events', (req, res) => {
     const { type, actorId, payload } = req.body || {};
     try {
-      await db.read();
+      const actor = actorId || req.user?.id || 'emp-01';
       let event;
       switch (type) {
         case 'split':
-          event = domain.split(payload);
+          event = domain.split({ ...payload, actorId: actor });
           break;
         case 'merge':
-          event = domain.merge(payload);
+          event = domain.merge({ ...payload, actorId: actor });
           break;
         case 'place':
-          event = domain.place(payload);
+          event = domain.place({ ...payload, actorId: actor });
           break;
         case 'status':
-          event = domain.updateStatus(payload);
+          event = domain.updateStatus({ ...payload, actorId: actor });
           break;
         case 'transfer':
-          event = domain.transfer(payload);
+          event = domain.transfer({ ...payload, actorId: actor });
           break;
         default:
           return res.status(400).json({ error: 'Invalid event type' });
       }
-      event.actorId = actorId || req.user?.id || event.actorId;
-      db.data.events.unshift(event);
-      await db.write();
       res.json(event);
     } catch (err) {
       res.status(400).json({ error: err.message || 'Bad request' });
