@@ -488,49 +488,130 @@ function renderPlaceTab() {
   content.innerHTML = `
     <section class="card">
       <div class="card-title">批量上架</div>
-      <div class="small">盘子编号 + 上架位置</div>
+      <div class="small">先选位置锁定，再连续添加盘子，最后一次提交</div>
     </section>
-    <section class="panel card">
-      <label>盘子编号</label>
-      <input id="place-tray" placeholder="如 T-01" />
-      ${helperRow(trayIds(), 'place-tray')}
-    </section>
-    <section class="panel card">
+    <section class="panel card" id="place-loc-panel">
       <label>上架位置（架/层/位）</label>
       <input id="place-location" placeholder="如 rack-A1" />
       ${helperRow(locationIds(), 'place-location')}
+      <button id="place-lock" class="primary-action" style="margin-top:8px;width:100%">锁定位置</button>
     </section>
-    <div class="action-row">
-      <button id="place-submit" class="primary-action">提交上架</button>
+    <section class="panel card" id="place-tray-panel" style="display:none">
+      <div id="place-locked-badge" class="chip-row" style="margin-bottom:8px"></div>
+      <label>盘子编号（逐一添加）</label>
+      <div class="form-grid">
+        <input id="place-tray" placeholder="扫描/输入盘子编号，回车添加" />
+        <button id="place-tray-add" type="button">添加</button>
+      </div>
+      ${helperRow(trayIds(), 'place-tray', 'place-tray-add')}
+      <div id="place-tray-queue" class="chip-row" style="margin-top:8px"></div>
+    </section>
+    <div class="action-row" id="place-action-row" style="display:none">
+      <button id="place-submit" class="primary-action">完成上架</button>
+      <button id="place-unlock" class="ghost" style="margin-left:8px">更换位置</button>
     </div>
   `;
   wireHelpers(content);
-  const trayInput = content.querySelector('#place-tray');
-  const locationInput = content.querySelector('#place-location');
-  const submit = content.querySelector('#place-submit');
 
-  submit.addEventListener('click', () => {
-    withSubmit(submit, async () => {
+  const locPanel = content.querySelector('#place-loc-panel');
+  const locationInput = content.querySelector('#place-location');
+  const lockBtn = content.querySelector('#place-lock');
+  const trayPanel = content.querySelector('#place-tray-panel');
+  const lockedBadge = content.querySelector('#place-locked-badge');
+  const trayInput = content.querySelector('#place-tray');
+  const trayAddBtn = content.querySelector('#place-tray-add');
+  const trayQueueEl = content.querySelector('#place-tray-queue');
+  const actionRow = content.querySelector('#place-action-row');
+  const submitBtn = content.querySelector('#place-submit');
+  const unlockBtn = content.querySelector('#place-unlock');
+
+  let lockedLocation = '';
+  let trayList = [];
+
+  function renderTrayQueue() {
+    trayQueueEl.innerHTML = trayList
+      .map(
+        (id) =>
+          `<span class="chip">${id}<button data-id="${id}" aria-label="remove">×</button></span>`
+      )
+      .join('');
+    trayQueueEl.querySelectorAll('button').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        trayList = trayList.filter((x) => x !== btn.dataset.id);
+        renderTrayQueue();
+      })
+    );
+  }
+
+  lockBtn.addEventListener('click', () => {
+    const loc = locationInput.value.trim();
+    if (!loc) {
+      toast('请先填写位置', 'error');
+      return;
+    }
+    lockedLocation = loc;
+    locPanel.style.display = 'none';
+    trayPanel.style.display = 'block';
+    actionRow.style.display = 'flex';
+    lockedBadge.innerHTML = `<span class="chip" style="background:var(--sky);color:#fff">位置: ${loc}</span>`;
+    trayInput.focus();
+  });
+
+  unlockBtn.addEventListener('click', () => {
+    lockedLocation = '';
+    trayList = [];
+    locPanel.style.display = 'block';
+    trayPanel.style.display = 'none';
+    actionRow.style.display = 'none';
+    renderTrayQueue();
+  });
+
+  trayAddBtn.addEventListener('click', () => {
+    const id = trayInput.value.trim();
+    if (!id) return;
+    if (trayList.includes(id)) {
+      toast('已在队列中', 'error');
+      return;
+    }
+    trayList.push(id);
+    trayInput.value = '';
+    trayInput.focus();
+    renderTrayQueue();
+  });
+
+  trayInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      trayAddBtn.click();
+    }
+  });
+
+  submitBtn.addEventListener('click', () => {
+    withSubmit(submitBtn, async () => {
+      if (trayList.length === 0) {
+        toast('请至少添加一个盘子', 'error');
+        return;
+      }
       try {
-        const trayId = trayInput.value.trim();
-        if (!trayId) throw new Error('请填写盘子编号');
-        const locationId = locationInput.value.trim();
-        if (!locationId) throw new Error('请填写上架位置');
-        await api.postEvent(
-          {
-          type: 'place',
-          actorId: currentActorId(),
-          payload: { trayId, locationId },
-        },
-          authToken()
-        );
-        toast(`上架盘子 ${trayId} @ ${locationId}`);
+        for (const trayId of trayList) {
+          await api.postEvent(
+            {
+              type: 'place',
+              actorId: currentActorId(),
+              payload: { trayId, locationId: lockedLocation },
+            },
+            authToken()
+          );
+        }
+        toast(`上架 ${trayList.length} 个盘子 @ ${lockedLocation}`);
+        trayList = [];
+        renderTrayQueue();
         await refreshEventsAndDishes();
         renderEventLog();
         renderMyHistory();
       } catch (err) {
         if (handleAuthError(err)) return;
-        toast(err.message || '失败', 'error');
+        toast(err.message || '上架失败', 'error');
       }
     });
   });
