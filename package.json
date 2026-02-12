@@ -11,6 +11,7 @@
     "dev": "vite",
     "dev:server": "node --watch server/index.js",
     "build": "vite build",
+    "build:local": "VITE_MODE=local vite build --base=/fla_test/",
     "preview": "vite preview",
     "start:server": "node server/index.js",
     "test": "vitest run",

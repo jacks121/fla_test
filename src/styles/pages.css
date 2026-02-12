@@ -1,0 +1,341 @@
+/* pages.css — 登录页、管理页特有样式 */
+
+/* === 登录页 === */
+.auth-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-xl) var(--space-lg);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.auth-page__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.auth-page__logo {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+}
+
+.auth-page__brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-page__brand-name {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--color-text);
+}
+
+.auth-page__brand-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.auth-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.auth-card__title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.auth-card__sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xl);
+}
+
+.auth-card .form-group {
+  margin-bottom: var(--space-md);
+}
+
+.auth-error {
+  min-height: 20px;
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+  font-weight: 500;
+}
+
+.auth-actions {
+  margin-top: var(--space-lg);
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: var(--space-xl);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* === 扫码覆盖层 === */
+#scan-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-overlay) + 10);
+  background: rgba(0, 0, 0, 0.9);
+  align-items: center;
+  justify-content: center;
+}
+
+#scan-overlay.active {
+  display: flex;
+}
+
+.scan-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 var(--space-lg);
+}
+
+.scan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  background: #1e293b;
+  color: #fff;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.scan-header button {
+  background: transparent;
+  color: #fff;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  min-height: 32px;
+}
+
+#scan-reader {
+  background: #000;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  overflow: hidden;
+}
+
+/* === QR 标签打印网格 === */
+.qr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+
+.qr-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+}
+
+.qr-cell canvas {
+  width: 120px;
+  height: 120px;
+}
+
+.qr-label {
+  margin-top: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* === 总览页统计网格 === */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+/* === 快捷入口 === */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease),
+    transform var(--duration-fast) var(--ease);
+}
+
+.quick-action:hover {
+  background: var(--color-bg);
+}
+
+.quick-action:active {
+  transform: scale(0.97);
+}
+
+.quick-action__icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+}
+
+.quick-action__icon--scan { background: var(--color-primary-soft); color: var(--color-primary); }
+.quick-action__icon--check { background: var(--color-success-soft); color: var(--color-success); }
+.quick-action__icon--create { background: #fef3c7; color: #f59e0b; }
+
+.quick-action__label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+}
+
+/* === 历史页筛选栏 === */
+.filter-bar {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.filter-bar select {
+  flex: 1;
+  min-height: 38px;
+  padding: 6px 32px 6px 10px;
+  font-size: var(--font-size-sm);
+}
+
+/* === 更多页面菜单 === */
+.menu-list {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-border-light);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease);
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  border-radius: 0;
+  width: 100%;
+  text-align: left;
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  min-height: 52px;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-item:hover {
+  background: var(--color-bg);
+}
+
+.menu-item__icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.menu-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-item__title {
+  font-weight: 600;
+}
+
+.menu-item__desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.menu-item__arrow {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.menu-item--danger .menu-item__icon {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.menu-item--danger .menu-item__title {
+  color: var(--color-danger);
+}
+
+/* === 花苗信息卡 === */
+.plant-info-card {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+  margin: var(--space-sm) 0;
+}
+
+.plant-info-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.plant-info-card__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.plant-info-card__value {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}

@@ -2,56 +2,62 @@
 <html lang="zh-Hans">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>标签打印 · 花苗流程</title>
   <meta name="theme-color" content="#0ea5e9" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
   <div id="app">
-    <header class="app-header">
-      <div>
-        <div class="title">标签打印</div>
-        <div class="subtitle">生成二维码 · 打印标签</div>
+    <div class="app-bar">
+      <div class="app-bar__left">
+        <a href="./index.html" style="color: var(--color-text-secondary); display: flex; align-items: center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </a>
+        <span class="app-bar__title">标签打印</span>
       </div>
-      <div class="header-actions">
-        <a href="./index.html" class="link" style="font-size:13px">返回主页</a>
-      </div>
-    </header>
+    </div>
     <main id="admin-content">
-      <section class="card">
-        <div class="card-title">生成二维码标签</div>
-        <div class="small">输入前缀和范围，批量生成可打印的二维码标签</div>
-      </section>
-      <section class="card">
-        <label>类型</label>
-        <select id="qr-type">
-          <option value="dish">培养皿 (D-)</option>
-          <option value="tray">盘子 (T-)</option>
-          <option value="location">位置 (rack-)</option>
-          <option value="custom">自定义前缀</option>
-        </select>
-      </section>
-      <section class="card" id="custom-prefix-panel" style="display:none">
-        <label>自定义前缀</label>
-        <input id="qr-prefix" placeholder="如 MY-" />
-      </section>
-      <section class="card">
-        <label>起始编号</label>
-        <input id="qr-start" type="number" min="1" value="1" />
-        <label style="margin-top:8px">数量</label>
-        <input id="qr-count" type="number" min="1" max="200" value="20" />
-      </section>
-      <div class="action-row">
-        <button id="qr-generate" class="primary-action">生成标签</button>
+      <div class="card">
+        <div class="card__title">生成二维码标签</div>
+        <div class="card__sub">选择类型和范围，批量生成可打印的二维码标签</div>
       </div>
-      <div class="action-row" id="print-row" style="display:none;margin-top:8px">
-        <button id="qr-print" class="primary-action" style="background:var(--success)">打印标签</button>
+      <div class="card">
+        <div class="form-group">
+          <label for="qr-type">标签类型</label>
+          <select id="qr-type">
+            <option value="dish">培养皿 (D-)</option>
+            <option value="tray">盘子 (T-)</option>
+            <option value="location">位置 (rack-)</option>
+            <option value="custom">自定义前缀</option>
+          </select>
+        </div>
+        <div class="form-group hidden" id="custom-prefix-panel">
+          <label for="qr-prefix">自定义前缀</label>
+          <input id="qr-prefix" placeholder="如 MY-" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="qr-start">起始编号</label>
+            <input id="qr-start" type="number" inputmode="numeric" min="1" value="1" />
+          </div>
+          <div class="form-group">
+            <label for="qr-count">数量</label>
+            <input id="qr-count" type="number" inputmode="numeric" min="1" max="200" value="20" />
+          </div>
+        </div>
       </div>
-      <section id="qr-grid" class="qr-grid"></section>
+      <div style="display: flex; gap: 8px; margin-bottom: 12px">
+        <button id="qr-generate" class="btn-primary" style="flex: 1">生成标签</button>
+        <button id="qr-print" class="btn-success hidden" style="flex: 1">打印标签</button>
+      </div>
+      <div id="qr-grid" class="qr-grid"></div>
     </main>
   </div>
   <script type="module" src="./src/admin.js"></script>

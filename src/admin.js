@@ -1,3 +1,5 @@
+// admin.js — 标签打印页入口（独立页面版本）
+
 import QRCode from 'qrcode';
 
 const typeSelect = document.getElementById('qr-type');
@@ -6,14 +8,13 @@ const prefixInput = document.getElementById('qr-prefix');
 const startInput = document.getElementById('qr-start');
 const countInput = document.getElementById('qr-count');
 const generateBtn = document.getElementById('qr-generate');
-const printRow = document.getElementById('print-row');
 const printBtn = document.getElementById('qr-print');
 const grid = document.getElementById('qr-grid');
 
 const prefixMap = { dish: 'D-', tray: 'T-', location: 'rack-' };
 
 typeSelect.addEventListener('change', () => {
-  customPanel.style.display = typeSelect.value === 'custom' ? 'block' : 'none';
+  customPanel.classList.toggle('hidden', typeSelect.value !== 'custom');
 });
 
 generateBtn.addEventListener('click', async () => {
@@ -23,7 +24,7 @@ generateBtn.addEventListener('click', async () => {
   const count = Math.min(200, Math.max(1, Number(countInput.value) || 20));
 
   grid.innerHTML = '';
-  printRow.style.display = 'none';
+  printBtn.classList.add('hidden');
   generateBtn.disabled = true;
   generateBtn.textContent = '生成中...';
 
@@ -46,7 +47,7 @@ generateBtn.addEventListener('click', async () => {
       grid.appendChild(cell);
     }
 
-    printRow.style.display = 'flex';
+    printBtn.classList.remove('hidden');
   } finally {
     generateBtn.disabled = false;
     generateBtn.textContent = '生成标签';

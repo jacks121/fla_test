@@ -7,7 +7,7 @@ export function createAuth(db) {
   const insertSession = db.prepare(
     'INSERT INTO sessions (token, userId, userName, role, createdAt, expiresAt) VALUES (?, ?, ?, ?, ?, ?)'
   );
-  const getSession = db.prepare('SELECT * FROM sessions WHERE token = ?');
+  const selectSession = db.prepare('SELECT * FROM sessions WHERE token = ?');
   const deleteSession = db.prepare('DELETE FROM sessions WHERE token = ?');
   const findUser = db.prepare('SELECT * FROM users WHERE username = ?');
 
@@ -28,11 +28,16 @@ export function createAuth(db) {
     deleteSession.run(token);
   }
 
+  function getSession(token) {
+    return selectSession.get(token);
+  }
+
+  // Backward-compatible middleware (used by tests that call auth.authenticate directly)
   function authenticate(req, res, next) {
     if (req.path === '/api/health' || req.path === '/api/login') return next();
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-    const session = getSession.get(token);
+    const session = getSession(token);
     if (!session) return res.status(401).json({ error: 'Unauthorized' });
     if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
       deleteSession.run(token);
@@ -49,5 +54,5 @@ export function createAuth(db) {
     next();
   }
 
-  return { login, logout, authenticate, requireAdmin };
+  return { login, logout, getSession, authenticate, requireAdmin };
 }

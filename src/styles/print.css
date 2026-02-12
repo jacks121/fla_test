@@ -1,0 +1,39 @@
+/* print.css — 打印样式 */
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .app-bar,
+  .tab-bar,
+  .action-bar,
+  .offline-banner,
+  .toast,
+  #admin-content > .card:first-child,
+  select,
+  input,
+  label,
+  button,
+  .card__sub,
+  .section-title {
+    display: none !important;
+  }
+
+  #app {
+    max-width: none;
+    padding: 0;
+  }
+
+  .qr-grid {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 0;
+  }
+
+  .qr-cell {
+    border: 1px dashed #ccc;
+    break-inside: avoid;
+  }
+}
